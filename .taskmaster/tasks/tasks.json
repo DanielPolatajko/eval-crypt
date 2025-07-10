@@ -225,6 +225,15 @@
             "status": "in-progress",
             "dependencies": [],
             "parentTaskId": 9
+          },
+          {
+            "id": 2,
+            "title": "Add pre-commit hooks for ruff and mypy",
+            "description": "Set up pre-commit hooks to run ruff (linter) and mypy (type checker) on staged files. Add ruff and mypy to the test dependencies in pyproject.toml. Reinstall test dependencies and ensure both tools pass before opening a PR.",
+            "details": "- Add ruff and mypy to [project.optional-dependencies] test group in pyproject.toml\n- Add pre-commit hooks for ruff and mypy in .pre-commit-config.yaml\n- Reinstall test dependencies (pip install -e .[test])\n- Run ruff and mypy to ensure code passes linting and type checks\n- Only open a PR if both tools pass successfully",
+            "status": "in-progress",
+            "dependencies": [],
+            "parentTaskId": 9
           }
         ]
       },
@@ -252,7 +261,7 @@
     ],
     "metadata": {
       "created": "2025-07-10T10:23:51.578Z",
-      "updated": "2025-07-10T13:09:07.632Z",
+      "updated": "2025-07-10T13:21:23.827Z",
       "description": "Tasks for master context"
     }
   }

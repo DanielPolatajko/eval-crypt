@@ -497,7 +497,7 @@ def git_repo():
 Run the test suite with pytest to verify all functionality. Ensure tests cover all core functionality, edge cases, and error handling. Use code coverage tools to identify any untested code paths. Test on different operating systems (Windows, macOS, Linux) to ensure cross-platform compatibility.
 
 # Subtasks:
-## 1. Integrate key management into eval-crypt init [pending]
+## 1. Integrate key management into eval-crypt init [in-progress]
 ### Dependencies: None
 ### Description: Update the eval-crypt CLI 'init' command to generate and store a secret key if one does not exist. Ensure the key is created and saved securely during initialization, and is used by all encryption/decryption operations.
 ### Details:
@@ -506,4 +506,14 @@ Run the test suite with pytest to verify all functionality. Ensure tests cover a
 - Ensure the key is not overwritten if it already exists
 - Add or update tests to verify key creation during init
 - Document the key management behavior in the README if needed
+
+## 2. Add pre-commit hooks for ruff and mypy [pending]
+### Dependencies: None
+### Description: Set up pre-commit hooks to run ruff (linter) and mypy (type checker) on staged files. Add ruff and mypy to the test dependencies in pyproject.toml. Reinstall test dependencies and ensure both tools pass before opening a PR.
+### Details:
+- Add ruff and mypy to [project.optional-dependencies] test group in pyproject.toml
+- Add pre-commit hooks for ruff and mypy in .pre-commit-config.yaml
+- Reinstall test dependencies (pip install -e .[test])
+- Run ruff and mypy to ensure code passes linting and type checks
+- Only open a PR if both tools pass successfully
 
