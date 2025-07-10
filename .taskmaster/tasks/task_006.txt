@@ -1,0 +1,209 @@
+# Task ID: 6
+# Title: Implement CLI Commands
+# Status: pending
+# Dependencies: 2, 3, 4, 5
+# Priority: high
+# Description: Create a command-line interface using Click to provide easy access to eval-crypt functionality.
+# Details:
+Create a module `eval_crypt/cli.py` to implement the CLI using Click:
+
+```python
+import click
+import os
+from pathlib import Path
+
+from eval_crypt.crypto import create_or_read_secret_key, encrypt_file, decrypt_file
+from eval_crypt.gitattributes import add_sensitive_file, remove_sensitive_file, get_sensitive_files
+from eval_crypt.git_config import configure_git_filters, check_git_filters_configured
+from eval_crypt.hooks import install_hooks, check_hooks_installed
+
+
+@click.group()
+def cli():
+    """eval-crypt: Encrypt sensitive AI safety evaluation files in Git repositories."""
+    pass
+
+
+@cli.command()
+def init():
+    """Initialize eval-crypt in the current repository."""
+    # Create secret key
+    key_path = Path("anti-pretraining.sk")
+    if key_path.exists():
+        click.echo(f"Secret key already exists at {key_path}")
+    else:
+        sk = create_or_read_secret_key(key_path)
+        click.echo(f"Created new secret key at {key_path}")
+    
+    # Configure Git filters
+    if check_git_filters_configured():
+        click.echo("Git filters already configured")
+    else:
+        if configure_git_filters():
+            click.echo("Configured Git filters for eval-crypt")
+        else:
+            click.echo("Failed to configure Git filters")
+    
+    # Install Git hooks
+    if check_hooks_installed():
+        click.echo("Git hooks already installed")
+    else:
+        if install_hooks():
+            click.echo("Installed Git hooks for eval-crypt")
+        else:
+            click.echo("Failed to install Git hooks")
+    
+    click.echo("eval-crypt initialized successfully")
+
+
+@cli.command()
+@click.argument("file_pattern")
+def add(file_pattern):
+    """Add a file pattern to the list of sensitive files."""
+    add_sensitive_file(file_pattern)
+    click.echo(f"Added {file_pattern} to sensitive files")
+
+
+@cli.command()
+@click.argument("file_pattern")
+def remove(file_pattern):
+    """Remove a file pattern from the list of sensitive files."""
+    if remove_sensitive_file(file_pattern):
+        click.echo(f"Removed {file_pattern} from sensitive files")
+    else:
+        click.echo(f"File pattern {file_pattern} not found in sensitive files")
+
+
+@cli.command()
+def list():
+    """List all sensitive file patterns."""
+    sensitive_files = get_sensitive_files()
+    if sensitive_files:
+        click.echo("Sensitive files:")
+        for file_pattern in sensitive_files:
+            click.echo(f"  {file_pattern}")
+    else:
+        click.echo("No sensitive files configured")
+
+
+@cli.command()
+def encrypt():
+    """Encrypt all sensitive files (used by pre-commit hook)."""
+    sk = create_or_read_secret_key()
+    sensitive_patterns = get_sensitive_files()
+    
+    # Find files matching the patterns
+    files_to_encrypt = []
+    for pattern in sensitive_patterns:
+        # Handle simple file patterns (not directories or wildcards)
+        if os.path.exists(pattern) and os.path.isfile(pattern):
+            files_to_encrypt.append(pattern)
+        # TODO: Handle more complex patterns with glob
+    
+    if not files_to_encrypt:
+        click.echo("No sensitive files found to encrypt")
+        return
+    
+    for file_path in files_to_encrypt:
+        try:
+            # Skip already encrypted files
+            if file_path.endswith(".enc"):
+                continue
+                
+            # Skip if the encrypted version exists (file already encrypted)
+            if os.path.exists(f"{file_path}.enc"):
+                continue
+                
+            encrypt_file(file_path, sk)
+            click.echo(f"Encrypted {file_path}")
+        except Exception as e:
+            click.echo(f"Failed to encrypt {file_path}: {e}")
+
+
+@cli.command()
+def decrypt():
+    """Decrypt all sensitive files (used by post-merge hook)."""
+    sk = create_or_read_secret_key()
+    sensitive_patterns = get_sensitive_files()
+    
+    # Find encrypted files
+    files_to_decrypt = []
+    for pattern in sensitive_patterns:
+        enc_pattern = f"{pattern}.enc"
+        if os.path.exists(enc_pattern) and os.path.isfile(enc_pattern):
+            files_to_decrypt.append(pattern)
+        # TODO: Handle more complex patterns with glob
+    
+    if not files_to_decrypt:
+        click.echo("No encrypted files found to decrypt")
+        return
+    
+    for file_path in files_to_decrypt:
+        try:
+            decrypt_file(file_path, sk)
+            click.echo(f"Decrypted {file_path}")
+        except Exception as e:
+            click.echo(f"Failed to decrypt {file_path}: {e}")
+
+
+@cli.command()
+@click.argument("file_path")
+def clean(file_path):
+    """Git clean filter to encrypt a file (used by Git)."""
+    # This is called by Git during staging
+    sk = create_or_read_secret_key()
+    try:
+        with open(file_path, "rb") as f:
+            content = f.read()
+        
+        # Encrypt the content
+        cipher = AES.new(sk, AES.MODE_CTR)
+        encrypted = cipher.encrypt(content)
+        nonce = b64encode(cipher.nonce).decode("utf-8")
+        ct = b64encode(encrypted).decode("utf-8")
+        result = json.dumps({"nonce": nonce, "ciphertext": ct})
+        
+        # Output to stdout for Git to capture
+        click.echo(result, nl=False)
+    except Exception as e:
+        # On error, return the original content
+        with open(file_path, "rb") as f:
+            click.echo(f.read(), nl=False)
+
+
+@cli.command()
+@click.argument("file_path")
+def smudge(file_path):
+    """Git smudge filter to decrypt a file (used by Git)."""
+    # This is called by Git during checkout
+    sk = create_or_read_secret_key()
+    try:
+        # Read from stdin (Git provides the content)
+        content = click.get_text_stream("stdin").read()
+        
+        # Try to decrypt
+        try:
+            data = json.loads(content)
+            nonce = b64decode(data["nonce"])
+            ciphertext = b64decode(data["ciphertext"])
+            cipher = AES.new(sk, AES.MODE_CTR, nonce=nonce)
+            decrypted = cipher.decrypt(ciphertext)
+            click.echo(decrypted, nl=False)
+        except (json.JSONDecodeError, KeyError, ValueError):
+            # If not valid JSON or not our format, return as is
+            click.echo(content, nl=False)
+    except Exception as e:
+        # On error, return the input unchanged
+        click.echo(content, nl=False)
+
+
+def main():
+    cli()
+
+
+if __name__ == "__main__":
+    main()
+```
+
+# Test Strategy:
+Create unit tests for each CLI command. Use the Click testing utilities to simulate command invocations. Test the init, add, remove, list, encrypt, and decrypt commands with various inputs. Verify that the commands correctly interact with the underlying modules. Test error handling and edge cases, such as adding a file that's already in the list or removing a file that's not in the list.

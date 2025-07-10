@@ -1,0 +1,232 @@
+# Task ID: 8
+# Title: Create Documentation
+# Status: pending
+# Dependencies: 1, 2, 3, 4, 5, 6, 7
+# Priority: medium
+# Description: Create comprehensive documentation for the eval-crypt package, including installation, usage, and examples.
+# Details:
+Create documentation files in the docs/ directory:
+
+1. Create a comprehensive README.md in the project root:
+```markdown
+# eval-crypt
+
+A Python package that encrypts sensitive AI safety evaluation files in Git repositories to prevent models from memorizing solutions during pre-training.
+
+## Problem
+
+AI safety researchers often publish evaluation code and data to GitHub. If these repositories are later crawled for model pre-training, the models could memorize solutions to the evaluations, making them less effective at measuring emergent capabilities.
+
+## Solution
+
+eval-crypt encrypts sensitive files before they are pushed to GitHub and decrypts them when pulled, allowing researchers to work with plaintext files locally while ensuring the public repository contains only encrypted versions.
+
+## Installation
+
+```bash
+pip install eval-crypt
+```
+
+## Quick Start
+
+1. Initialize eval-crypt in your repository:
+
+```bash
+eval-crypt init
+```
+
+2. Add sensitive files to be encrypted:
+
+```bash
+eval-crypt add sensitive_file.txt
+eval-crypt add "*.json"  # Use quotes for patterns with wildcards
+```
+
+3. Continue using Git normally. Files will be automatically encrypted on commit and decrypted on pull.
+
+## Commands
+
+- `eval-crypt init`: Initialize eval-crypt in the current repository
+- `eval-crypt add <file_pattern>`: Add a file pattern to the list of sensitive files
+- `eval-crypt remove <file_pattern>`: Remove a file pattern from the list of sensitive files
+- `eval-crypt list`: List all sensitive file patterns
+- `eval-crypt encrypt`: Manually encrypt all sensitive files
+- `eval-crypt decrypt`: Manually decrypt all sensitive files
+
+## How It Works
+
+eval-crypt uses Git filters and hooks to automatically encrypt and decrypt files:
+
+1. When you add a file pattern with `eval-crypt add`, it's added to `.gitattributes` with the `filter=eval-crypt` attribute
+2. The pre-commit hook encrypts sensitive files before they're committed
+3. The post-merge hook decrypts sensitive files after they're pulled
+
+Even if a model is pre-trained on both the encrypted files and the encryption key, it won't be able to run the decryption algorithm during pre-training, so the sensitive content remains protected.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+```
+
+2. Create a detailed usage guide in docs/usage.md:
+```markdown
+# eval-crypt Usage Guide
+
+## Installation
+
+Install eval-crypt using pip:
+
+```bash
+pip install eval-crypt
+```
+
+## Repository Setup
+
+### Initializing eval-crypt
+
+In your Git repository, run:
+
+```bash
+eval-crypt init
+```
+
+This will:
+- Generate a secret key (stored in `anti-pretraining.sk`)
+- Configure Git filters
+- Install Git hooks
+
+### Managing Sensitive Files
+
+#### Adding Files
+
+To add a file or pattern to the list of sensitive files:
+
+```bash
+eval-crypt add sensitive_file.txt
+```
+
+You can use patterns to match multiple files:
+
+```bash
+eval-crypt add "*.json"
+eval-crypt add "data/*.csv"
+```
+
+#### Removing Files
+
+To remove a file or pattern from the list:
+
+```bash
+eval-crypt remove sensitive_file.txt
+```
+
+#### Listing Files
+
+To see all sensitive file patterns:
+
+```bash
+eval-crypt list
+```
+
+## Working with Git
+
+### Normal Workflow
+
+Once set up, you can use Git normally. The hooks will automatically:
+- Encrypt sensitive files when you commit (pre-commit hook)
+- Decrypt sensitive files when you pull or merge (post-merge hook)
+
+### Manual Encryption/Decryption
+
+If needed, you can manually encrypt or decrypt files:
+
+```bash
+eval-crypt encrypt  # Encrypt all sensitive files
+eval-crypt decrypt  # Decrypt all sensitive files
+```
+
+## Troubleshooting
+
+### Files Not Encrypting
+
+If files aren't being encrypted on commit:
+
+1. Check if the file pattern is in the sensitive files list: `eval-crypt list`
+2. Verify Git hooks are installed correctly
+3. Try manual encryption: `eval-crypt encrypt`
+
+### Files Not Decrypting
+
+If files aren't being decrypted on pull:
+
+1. Check if the encrypted file exists (`.enc` extension)
+2. Verify the secret key is present and correct
+3. Try manual decryption: `eval-crypt decrypt`
+```
+
+3. Create a technical reference in docs/technical.md:
+```markdown
+# Technical Reference
+
+## Architecture
+
+eval-crypt consists of several components:
+
+1. **Crypto Module**: Handles encryption and decryption using AES
+2. **Git Attributes Manager**: Manages the `.gitattributes` file
+3. **Git Filter Scripts**: Implements the clean and smudge filters
+4. **Git Hooks**: Pre-commit and post-merge hooks
+5. **CLI**: Command-line interface for user interaction
+
+## Encryption Details
+
+eval-crypt uses AES encryption in CTR mode:
+
+- A 16-byte secret key is generated and stored in `anti-pretraining.sk`
+- Files are encrypted with a unique nonce for each encryption
+- Encrypted data is stored as a JSON object with nonce and ciphertext
+
+## Git Integration
+
+### Filters
+
+Git filters are configured in the repository's `.git/config`:
+
+```
+[filter "eval-crypt"]
+    clean = eval-crypt clean %f
+    smudge = eval-crypt smudge %f
+    required = true
+```
+
+- The **clean** filter runs during staging and encrypts files
+- The **smudge** filter runs during checkout and decrypts files
+
+### Attributes
+
+Sensitive files are marked in `.gitattributes` with the `filter=eval-crypt` attribute:
+
+```
+sensitive_file.txt filter=eval-crypt
+*.json filter=eval-crypt
+```
+
+### Hooks
+
+- **Pre-commit**: Encrypts sensitive files before commit
+- **Post-merge**: Decrypts sensitive files after merge
+
+## File Format
+
+Encrypted files are stored as JSON objects:
+
+```json
+{
+    "nonce": "base64-encoded-nonce",
+    "ciphertext": "base64-encoded-encrypted-data"
+}
+```
+```
+
+# Test Strategy:
+Review the documentation for accuracy, completeness, and clarity. Ensure all commands and examples are correct. Verify that the installation instructions work on a fresh environment. Check that the technical details accurately reflect the implementation.
