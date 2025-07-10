@@ -495,3 +495,15 @@ def git_repo():
 
 # Test Strategy:
 Run the test suite with pytest to verify all functionality. Ensure tests cover all core functionality, edge cases, and error handling. Use code coverage tools to identify any untested code paths. Test on different operating systems (Windows, macOS, Linux) to ensure cross-platform compatibility.
+
+# Subtasks:
+## 1. Integrate key management into eval-crypt init [pending]
+### Dependencies: None
+### Description: Update the eval-crypt CLI 'init' command to generate and store a secret key if one does not exist. Ensure the key is created and saved securely during initialization, and is used by all encryption/decryption operations.
+### Details:
+- Modify the CLI 'init' command to call the key generation logic from crypto.py
+- Store the key in a secure file (e.g., eval-crypt.key) in the project root
+- Ensure the key is not overwritten if it already exists
+- Add or update tests to verify key creation during init
+- Document the key management behavior in the README if needed
+

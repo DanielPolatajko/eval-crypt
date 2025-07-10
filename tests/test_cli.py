@@ -4,6 +4,7 @@ from click.testing import CliRunner
 from pathlib import Path
 
 from eval_crypt.cli import main
+from eval_crypt.crypto import KEY_FILE
 
 GITATTRIBUTES_PATH = Path('.gitattributes')
 
@@ -39,6 +40,27 @@ def test_init_command(runner, temp_git_repo):
     result2 = runner.invoke(main, ['init'])
     assert result2.exit_code == 0
     assert ".gitattributes already exists." in result2.output
+
+def test_init_creates_key_and_gitattributes(runner):
+    with runner.isolated_filesystem():
+        result = runner.invoke(main, ['init'])
+        assert result.exit_code == 0
+        assert os.path.exists('.gitattributes')
+        assert os.path.exists(KEY_FILE)
+        assert "Created .gitattributes." in result.output or ".gitattributes already exists." in result.output
+        assert f"Created secret key at {KEY_FILE}." in result.output or f"Secret key already exists at {KEY_FILE}." in result.output
+
+def test_init_does_not_overwrite_existing_key(runner):
+    with runner.isolated_filesystem():
+        # Create a dummy key file
+        with open(KEY_FILE, 'wb') as f:
+            f.write(b'1234567890abcdef')
+        result = runner.invoke(main, ['init'])
+        assert result.exit_code == 0
+        with open(KEY_FILE, 'rb') as f:
+            key_contents = f.read()
+        assert key_contents == b'1234567890abcdef'
+        assert f"Secret key already exists at {KEY_FILE}." in result.output
 
 def test_add_command_requires_init(runner, temp_git_repo):
     # Should warn if .gitattributes missing

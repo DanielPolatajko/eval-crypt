@@ -170,7 +170,7 @@
         "id": 7,
         "title": "Implement Git Filter Scripts",
         "description": "Create the clean and smudge filter scripts that Git will use to process files during staging and checkout.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           2,
           6
@@ -216,7 +216,17 @@
           7
         ],
         "status": "pending",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Integrate key management into eval-crypt init",
+            "description": "Update the eval-crypt CLI 'init' command to generate and store a secret key if one does not exist. Ensure the key is created and saved securely during initialization, and is used by all encryption/decryption operations.",
+            "details": "- Modify the CLI 'init' command to call the key generation logic from crypto.py\n- Store the key in a secure file (e.g., eval-crypt.key) in the project root\n- Ensure the key is not overwritten if it already exists\n- Add or update tests to verify key creation during init\n- Document the key management behavior in the README if needed",
+            "status": "in-progress",
+            "dependencies": [],
+            "parentTaskId": 9
+          }
+        ]
       },
       {
         "id": 10,
@@ -242,7 +252,7 @@
     ],
     "metadata": {
       "created": "2025-07-10T10:23:51.578Z",
-      "updated": "2025-07-10T12:53:34.697Z",
+      "updated": "2025-07-10T13:09:07.632Z",
       "description": "Tasks for master context"
     }
   }
