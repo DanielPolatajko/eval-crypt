@@ -12,10 +12,9 @@ To circumvent the above problem, we propose the following solution:
 
 We will create a python package that researchers can easily add to their project which encrypts sensitive files on push, and decrypts sensitive files on pull. We can even include the secret key in the repo, because even if the model pre-trains on the encrypted text and the secret key, it will not be able to run the decryption algorithm during the pre-training run and so the text will appear random.
 
-The solution will take the form of a Python dev tool, which can be pip installed and has a lightweight CLI for registering sensitive files. We should utilise pre-commit and post-merge hooks to automate the encryption/decrpytion. We want to optimise for ease-of-use.
+The solution will take the form of a Python dev tool, which can be pip installed and has a lightweight CLI for registering sensitive files. We should utilise pre-commit and post-merge hooks to automate the encryption/decryption. We want to optimise for ease-of-use.
 
 The working title for the project is eval-crypt.
-
 
 # Core Features
 
@@ -25,25 +24,131 @@ The core functionality are git hooks which encrypt files before they are pushed 
 
 ## CLI
 
-There should be a lightweight CLI that allows anyone with a Python environment with the package installed to easily add files to the list of sensitive files. For example:
+The CLI should only provide commands to add, remove, and list files to be managed for encryption/decryption. For example:
 
-```python
+```bash
 eval-crypt add sensitive_file.txt
+eval-crypt remove sensitive_file.txt
+eval-crypt list
 ```
 
-This CLI should also allow files to be removed. 
+The CLI may also provide an `init` command to generate and store the secret key as part of the initial setup:
 
-The CLI should also be able to generate a secret key and store it in a file; this could be part of the initial setup e.g.
-
-```python
+```bash
 eval-crypt init
 ```
+
+**Note:** The CLI should NOT expose direct `encrypt` or `decrypt` commands to users. All encryption and decryption is handled automatically by git hooks (pre-commit, post-merge, etc.) for files in the managed list.
 
 Other features may be relevant later but this is probably sufficient to begin with. The key here is ease-of-use; we want to make the tool seamless for conscientious researchers.
 
 # User Experience
 
 The key users are AI safety researchers, particularly those working on evals research. The usual user flow would be installing eval-crypt, adding a set of sensitive files, and then using the CLI to maintain the list of sensitive files during the research and development process. We particularly want to ensure first-class support for evals projects written in Inspect framework - these are the types of projects we will target first. In particular, our first target repo is the inspect_evals repo from UK AISI, so it may help to look this repo up and learn more about it to understand the user requirements more deeply.
+
+# Development Roadmap  
+
+The MVP requirements are simple:
+- Enable a pre-commit and post-merge hook to encrypt and decrypt files which are maintained in a list (possibly in .gitattributes)
+- Provide a lightweight CLI for adding, removing, and listing files, and for initialising the encryption scheme (key generation)
+- **Do not provide direct encrypt/decrypt commands in the CLI**
+
+Future requirements could include things like key rotation, supporting different encryption algorithms, or more CLI flexibility.
+
+# Logical Dependency Chain
+
+We should start by building the core encryption-decryption script. I have included a draft of how this script could look in the appendices.
+
+We should then add the pre-commit and post-merge hooks.
+
+We should then add the initial CLI. At this point the MVP will be ready for user testing.
+
+# Risks and Mitigations  
+
+The main risks are probably adoption-related; asking researchers to augment their workflow with more overhead is difficult. To mitigate this risk, we must prioritise ease of use and ease of integration as much as possible in the tool design.
+
+# Appendix  
+
+## Prior Art
+
+There are a couple of libraries which have implemented something similar before, but are unsuitable for our purposes because they are not Python based and not AI safety specific. There are:
+
+- [transcrypt](https://github.com/elasticdog/transcrypt)
+- [git-crypt](https://github.com/AGWA/git-crypt)
+
+These projects will be great reference points for understanding how to best implement the git hooks, and for deciding future feature directions.
+
+## Draft crypto script
+
+Here is a reference script my collaborator whipped up to demonstrate how we could do the cryptography part of the project:
+
+```python
+#! pip install pycryptodome
+from Crypto.Cipher import AES
+from Crypto.Random import get_random_bytes
+import os
+import json
+from base64 import b64decode, b64encode
+
+
+def create_or_read_sk(fname: str = "anti-pretraining.sk"):
+    if not os.path.exists(fname):
+        print("sk file does not exist, creating sk")
+        with open(fname, "+bw") as f:
+            sk = get_random_bytes(16)
+            print(f"wrting a random 16 byte sk {sk.hex()} to {fname}")
+            f.write(sk)
+    with open(fname, "rb") as f:
+        return f.read()
+
+
+def encrypt_file(fname: str, sk: bytes):
+    with open(fname, "br") as f:
+        pt_bytes: bytes = f.read()
+
+    cipher = AES.new(sk, AES.MODE_CTR)
+    ct_bytes: bytes = cipher.encrypt(pt_bytes)
+    nonce = b64encode(cipher.nonce).decode("utf-8")
+    ct = b64encode(ct_bytes).decode("utf-8")
+    result = json.dumps({"nonce": nonce, "ciphertext": ct})
+    with open(fname + ".enc", "+wt") as f:
+        f.write(result)
+    os.remove(fname)
+
+    # try:
+    #     import gc
+    #     import time
+
+    #     gc.collect()
+    #     time.sleep(0.12)
+    #     print(f"tried to remove {fname}")
+    # except Exception as e:
+    #     print(f"Failed to remove {fname}: {e}")
+
+
+def dec_file(fname: str, sk: bytes):
+    with open(fname + ".enc", "+rt") as f:
+        ct_json_str: str = f.read()
+    try:
+        b64 = json.loads(ct_json_str)
+        nonce = b64decode(b64["nonce"])
+        ct_bytes = b64decode(b64["ciphertext"])
+        cipher = AES.new(sk, AES.MODE_CTR, nonce=nonce)
+        pt_bytes = cipher.decrypt(ct_bytes)
+        print("The first 15 charecters of the decrypted file are: ", pt_bytes[:15])
+    except (ValueError, KeyError):
+        print(
+            "Incorrect decryption -- Matan -- I will be surprised if this will be thrown since we are not using a MAC"
+        )
+    with open(fname, "+wb") as f:
+        f.write(pt_bytes)
+    os.remove(fname + ".enc")
+
+
+sk = create_or_read_sk()
+encrypt_file("bigfile.txt", sk)
+dec_file("bigfile.txt", sk)
+```
 
 </context>
 
