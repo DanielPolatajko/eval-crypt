@@ -62,6 +62,22 @@ def test_init_does_not_overwrite_existing_key(runner):
         assert key_contents == b'1234567890abcdef'
         assert f"Secret key already exists at {KEY_FILE}." in result.output
 
+def test_init_configures_git_filter(runner):
+    with runner.isolated_filesystem():
+        # Initialize a git repository
+        import subprocess
+        subprocess.run(["git", "init"], check=True)
+        # Run eval-crypt init
+        result = runner.invoke(main, ["init"])
+        assert result.exit_code == 0
+        # Check git config for filter.eval-crypt.clean
+        clean = subprocess.run(["git", "config", "--local", "filter.eval-crypt.clean"], capture_output=True, text=True)
+        smudge = subprocess.run(["git", "config", "--local", "filter.eval-crypt.smudge"], capture_output=True, text=True)
+        required = subprocess.run(["git", "config", "--local", "filter.eval-crypt.required"], capture_output=True, text=True)
+        assert clean.stdout.strip() == "eval-crypt clean"
+        assert smudge.stdout.strip() == "eval-crypt smudge"
+        assert required.stdout.strip() == "true"
+
 def test_add_command_requires_init(runner, temp_git_repo):
     # Should warn if .gitattributes missing
     assert not GITATTRIBUTES_PATH.exists()
@@ -136,6 +152,20 @@ def test_list_empty(runner, temp_git_repo):
     result = runner.invoke(main, ['list'])
     assert result.exit_code == 0
     assert "No files are currently managed for encryption." in result.output
+
+def test_clean_and_smudge_roundtrip(runner):
+    # Prepare plaintext
+    plaintext = b"Sensitive test data"
+    # Run clean to encrypt
+    result_clean = runner.invoke(main, ["clean"], input=plaintext, catch_exceptions=False)
+    assert result_clean.exit_code == 0
+    encrypted = result_clean.stdout_bytes
+    assert encrypted != plaintext
+    # Run smudge to decrypt
+    result_smudge = runner.invoke(main, ["smudge"], input=encrypted, catch_exceptions=False)
+    assert result_smudge.exit_code == 0
+    decrypted = result_smudge.stdout_bytes
+    assert decrypted == plaintext
 
 # The following tests are for future implementation:
 # def test_encrypt_decrypt_commands(runner, temp_git_repo):
