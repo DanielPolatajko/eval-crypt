@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "eval-crypt"
+version = "0.1.0"
+description = "A tool to encrypt sensitive AI safety evaluation files in Git repositories"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+dependencies = [
+    "click>=8.0.0",
+    "pycryptodome>=3.15.0",
+    "pre-commit>=2.20.0",
+]
+
+[project.scripts]
+eval-crypt = "eval_crypt.cli:main" 
