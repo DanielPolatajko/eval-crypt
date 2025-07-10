@@ -2,7 +2,7 @@ from pathlib import Path
 import click
 
 GITATTRIBUTES_PATH = Path('.gitattributes')
-FILTER_ATTR = 'filter=eval-crypt'
+FILTER_ATTR = 'filter=eval-crypt diff=eval-crypt merge=eval-crypt'
 
 def add_to_gitattributes(file_path):
     if not GITATTRIBUTES_PATH.exists():
@@ -36,5 +36,5 @@ def list_gitattributes():
         return None
     with GITATTRIBUTES_PATH.open('r', encoding='utf-8') as f:
         lines = f.readlines()
-    managed = [line.split()[0] for line in lines if FILTER_ATTR in line]
+    managed = [line.split()[0] for line in lines if 'filter=eval-crypt' in line]
     return managed 
