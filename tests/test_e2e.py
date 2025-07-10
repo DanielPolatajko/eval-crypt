@@ -10,8 +10,9 @@ SECRET_CONTENT = b"super secret data"
 
 def test_end_to_end_encryption_decryption(tmp_path):
     runner = CliRunner()
-    with runner.isolated_filesystem():
-        # Simulate a git repo
+    cwd = os.getcwd()
+    os.chdir(tmp_path)
+    try:
         subprocess.run(["git", "init"], check=True)
 
         # 1. Run eval-crypt init
@@ -51,16 +52,15 @@ def test_end_to_end_encryption_decryption(tmp_path):
         subprocess.run(["git", "commit", "-m", "Add encrypted secret1.txt"], check=True)
 
         # 6. The file in the repo should be encrypted (compare blob to plaintext)
-        # Get the blob hash for secret1.txt
         blob_hash = subprocess.check_output(["git", "ls-files", "-s", "secret1.txt"]).decode().split()[1]
-        # Extract the blob content
         blob_content = subprocess.check_output(["git", "cat-file", "-p", blob_hash])
         assert blob_content != SECRET_CONTENT
 
         # 7. Remove the file and restore it from git (should trigger smudge filter)
         os.remove("secret1.txt")
         subprocess.run(["git", "checkout", "--", "secret1.txt"], check=True)
-        # File should now be plaintext again
         with open("secret1.txt", "rb") as f:
             final_content = f.read()
-        assert final_content == SECRET_CONTENT 
+        assert final_content == SECRET_CONTENT
+    finally:
+        os.chdir(cwd) 

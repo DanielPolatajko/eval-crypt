@@ -21,25 +21,17 @@ def clean_gitattributes():
 def runner():
     return CliRunner()
 
-@pytest.fixture
-def temp_git_repo(tmp_path):
-    cwd = os.getcwd()
-    os.chdir(tmp_path)
-    os.system('git init')
-    yield tmp_path
-    os.chdir(cwd)
-
-def test_init_command(runner, temp_git_repo):
-    # Should create .gitattributes if missing
-    assert not GITATTRIBUTES_PATH.exists()
-    result = runner.invoke(main, ['init'])
-    assert result.exit_code == 0
-    assert "Created .gitattributes." in result.output
-    assert GITATTRIBUTES_PATH.exists()
-    # Should not overwrite if already exists
-    result2 = runner.invoke(main, ['init'])
-    assert result2.exit_code == 0
-    assert ".gitattributes already exists." in result2.output
+def test_init_command(runner):
+    with runner.isolated_filesystem():
+        assert not GITATTRIBUTES_PATH.exists()
+        result = runner.invoke(main, ['init'])
+        assert result.exit_code == 0
+        assert "Created .gitattributes." in result.output
+        assert GITATTRIBUTES_PATH.exists()
+        # Should not overwrite if already exists
+        result2 = runner.invoke(main, ['init'])
+        assert result2.exit_code == 0
+        assert ".gitattributes already exists." in result2.output
 
 def test_init_creates_key_and_gitattributes(runner):
     with runner.isolated_filesystem():
@@ -64,13 +56,10 @@ def test_init_does_not_overwrite_existing_key(runner):
 
 def test_init_configures_git_filter(runner):
     with runner.isolated_filesystem():
-        # Initialize a git repository
         import subprocess
         subprocess.run(["git", "init"], check=True)
-        # Run eval-crypt init
         result = runner.invoke(main, ["init"])
         assert result.exit_code == 0
-        # Check git config for filter.eval-crypt.clean
         clean = subprocess.run(["git", "config", "--local", "filter.eval-crypt.clean"], capture_output=True, text=True)
         smudge = subprocess.run(["git", "config", "--local", "filter.eval-crypt.smudge"], capture_output=True, text=True)
         required = subprocess.run(["git", "config", "--local", "filter.eval-crypt.required"], capture_output=True, text=True)
@@ -78,94 +67,111 @@ def test_init_configures_git_filter(runner):
         assert smudge.stdout.strip() == "eval-crypt smudge"
         assert required.stdout.strip() == "true"
 
-def test_add_command_requires_init(runner, temp_git_repo):
-    # Should warn if .gitattributes missing
-    assert not GITATTRIBUTES_PATH.exists()
-    result = runner.invoke(main, ['add', 'test.txt'])
-    assert result.exit_code == 0
-    assert ".gitattributes not found. Please run 'eval-crypt init' first." in result.output
-    assert not GITATTRIBUTES_PATH.exists()
+def test_add_command_requires_init(runner):
+    with runner.isolated_filesystem():
+        assert not GITATTRIBUTES_PATH.exists()
+        result = runner.invoke(main, ['add', 'test.txt'])
+        assert result.exit_code == 0
+        assert ".gitattributes not found. Please run 'eval-crypt init' first." in result.output
+        assert not GITATTRIBUTES_PATH.exists()
 
-def test_add_command(runner, temp_git_repo):
-    runner.invoke(main, ['init'])
-    result = runner.invoke(main, ['add', 'test.txt'])
-    assert result.exit_code == 0
-    assert "Added test.txt to the managed encryption list." in result.output
-    # Check .gitattributes content
-    assert GITATTRIBUTES_PATH.exists()
-    with GITATTRIBUTES_PATH.open() as f:
-        lines = f.readlines()
-    assert 'test.txt filter=eval-crypt\n' in lines
+def test_add_command(runner):
+    with runner.isolated_filesystem():
+        import subprocess
+        subprocess.run(["git", "init"], check=True)
+        runner.invoke(main, ['init'])
+        result = runner.invoke(main, ['add', 'test.txt'])
+        assert result.exit_code == 0
+        assert "Added test.txt to the managed encryption list." in result.output
+        assert GITATTRIBUTES_PATH.exists()
+        with GITATTRIBUTES_PATH.open() as f:
+            lines = f.readlines()
+        expected_entry = 'test.txt filter=eval-crypt diff=eval-crypt merge=eval-crypt\n'
+        assert expected_entry in lines
 
-def test_add_idempotent(runner, temp_git_repo):
-    runner.invoke(main, ['init'])
-    runner.invoke(main, ['add', 'test.txt'])
-    result = runner.invoke(main, ['add', 'test.txt'])
-    assert result.exit_code == 0
-    assert "already in the managed encryption list" in result.output
-    # Only one entry
-    with GITATTRIBUTES_PATH.open() as f:
-        lines = f.readlines()
-    assert lines.count('test.txt filter=eval-crypt\n') == 1
+def test_add_idempotent(runner):
+    with runner.isolated_filesystem():
+        import subprocess
+        subprocess.run(["git", "init"], check=True)
+        runner.invoke(main, ['init'])
+        runner.invoke(main, ['add', 'test.txt'])
+        result = runner.invoke(main, ['add', 'test.txt'])
+        assert result.exit_code == 0
+        assert "already in the managed encryption list" in result.output
+        with GITATTRIBUTES_PATH.open() as f:
+            lines = f.readlines()
+        expected_entry = 'test.txt filter=eval-crypt diff=eval-crypt merge=eval-crypt\n'
+        assert lines.count(expected_entry) == 1
 
-def test_remove_command_requires_init(runner, temp_git_repo):
-    assert not GITATTRIBUTES_PATH.exists()
-    result = runner.invoke(main, ['remove', 'test.txt'])
-    assert result.exit_code == 0
-    assert ".gitattributes not found. Please run 'eval-crypt init' first." in result.output
+def test_remove_command_requires_init(runner):
+    with runner.isolated_filesystem():
+        assert not GITATTRIBUTES_PATH.exists()
+        result = runner.invoke(main, ['remove', 'test.txt'])
+        assert result.exit_code == 0
+        assert ".gitattributes not found. Please run 'eval-crypt init' first." in result.output
 
-def test_remove_command(runner, temp_git_repo):
-    runner.invoke(main, ['init'])
-    runner.invoke(main, ['add', 'test.txt'])
-    result = runner.invoke(main, ['remove', 'test.txt'])
-    assert result.exit_code == 0
-    assert "Removed test.txt from the managed encryption list." in result.output
-    # Should be removed
-    with GITATTRIBUTES_PATH.open() as f:
-        lines = f.readlines()
-    assert 'test.txt filter=eval-crypt\n' not in lines
+def test_remove_command(runner):
+    with runner.isolated_filesystem():
+        import subprocess
+        subprocess.run(["git", "init"], check=True)
+        runner.invoke(main, ['init'])
+        runner.invoke(main, ['add', 'test.txt'])
+        result = runner.invoke(main, ['remove', 'test.txt'])
+        assert result.exit_code == 0
+        assert "Removed test.txt from the managed encryption list." in result.output
+        with GITATTRIBUTES_PATH.open() as f:
+            lines = f.readlines()
+        assert 'test.txt filter=eval-crypt\n' not in lines
 
-def test_remove_not_found(runner, temp_git_repo):
-    runner.invoke(main, ['init'])
-    result = runner.invoke(main, ['remove', 'notfound.txt'])
-    assert result.exit_code == 0
-    assert "was not found in the managed encryption list" in result.output
+def test_remove_not_found(runner):
+    with runner.isolated_filesystem():
+        import subprocess
+        subprocess.run(["git", "init"], check=True)
+        runner.invoke(main, ['init'])
+        result = runner.invoke(main, ['remove', 'notfound.txt'])
+        assert result.exit_code == 0
+        assert "was not found in the managed encryption list" in result.output
 
-def test_list_command_requires_init(runner, temp_git_repo):
-    assert not GITATTRIBUTES_PATH.exists()
-    result = runner.invoke(main, ['list'])
-    assert result.exit_code == 0
-    assert ".gitattributes not found. Please run 'eval-crypt init' first." in result.output
+def test_list_command_requires_init(runner):
+    with runner.isolated_filesystem():
+        assert not GITATTRIBUTES_PATH.exists()
+        result = runner.invoke(main, ['list'])
+        assert result.exit_code == 0
+        assert ".gitattributes not found. Please run 'eval-crypt init' first." in result.output
 
-def test_list_command(runner, temp_git_repo):
-    runner.invoke(main, ['init'])
-    runner.invoke(main, ['add', 'file1.txt'])
-    runner.invoke(main, ['add', 'file2.txt'])
-    result = runner.invoke(main, ['list'])
-    assert result.exit_code == 0
-    assert "Files managed for encryption:" in result.output
-    assert "file1.txt" in result.output
-    assert "file2.txt" in result.output
+def test_list_command(runner):
+    with runner.isolated_filesystem():
+        import subprocess
+        subprocess.run(["git", "init"], check=True)
+        runner.invoke(main, ['init'])
+        runner.invoke(main, ['add', 'file1.txt'])
+        runner.invoke(main, ['add', 'file2.txt'])
+        result = runner.invoke(main, ['list'])
+        assert result.exit_code == 0
+        assert "Files managed for encryption:" in result.output
+        assert "file1.txt" in result.output
+        assert "file2.txt" in result.output
 
-def test_list_empty(runner, temp_git_repo):
-    runner.invoke(main, ['init'])
-    result = runner.invoke(main, ['list'])
-    assert result.exit_code == 0
-    assert "No files are currently managed for encryption." in result.output
+def test_list_empty(runner):
+    with runner.isolated_filesystem():
+        import subprocess
+        subprocess.run(["git", "init"], check=True)
+        runner.invoke(main, ['init'])
+        result = runner.invoke(main, ['list'])
+        assert result.exit_code == 0
+        assert "No files are currently managed for encryption." in result.output
 
 def test_clean_and_smudge_roundtrip(runner):
-    # Prepare plaintext
-    plaintext = b"Sensitive test data"
-    # Run clean to encrypt
-    result_clean = runner.invoke(main, ["clean"], input=plaintext, catch_exceptions=False)
-    assert result_clean.exit_code == 0
-    encrypted = result_clean.stdout_bytes
-    assert encrypted != plaintext
-    # Run smudge to decrypt
-    result_smudge = runner.invoke(main, ["smudge"], input=encrypted, catch_exceptions=False)
-    assert result_smudge.exit_code == 0
-    decrypted = result_smudge.stdout_bytes
-    assert decrypted == plaintext
+    with runner.isolated_filesystem():
+        plaintext = b"Sensitive test data"
+        result_clean = runner.invoke(main, ["clean"], input=plaintext, catch_exceptions=False)
+        assert result_clean.exit_code == 0
+        encrypted = result_clean.stdout_bytes
+        assert encrypted != plaintext
+        result_smudge = runner.invoke(main, ["smudge"], input=encrypted, catch_exceptions=False)
+        assert result_smudge.exit_code == 0
+        decrypted = result_smudge.stdout_bytes
+        assert decrypted == plaintext
 
 # The following tests are for future implementation:
 # def test_encrypt_decrypt_commands(runner, temp_git_repo):
