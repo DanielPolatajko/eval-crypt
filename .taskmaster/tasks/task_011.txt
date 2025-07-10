@@ -1,0 +1,261 @@
+# Task ID: 11
+# Title: Enhance Init Command to Configure Git Filters
+# Status: pending
+# Dependencies: 6, 7
+# Priority: high
+# Description: Enhance the 'init' CLI command to automatically register the eval-crypt clean/smudge filter in .git/config, ensuring files listed in .gitattributes are properly encrypted/decrypted by git.
+# Details:
+Modify the existing 'init' command in `eval_crypt/cli.py` to automatically configure git filters:
+
+1. Update the `init` command to call the git filter configuration function:
+
+```python
+@cli.command()
+@click.option('--force', is_flag=True, help='Force overwrite of existing configuration')
+def init(force):
+    """Initialize eval-crypt in the current repository."""
+    # Create .eval-crypt directory if it doesn't exist
+    os.makedirs('.eval-crypt', exist_ok=True)
+    
+    # Create or read the secret key
+    key_path = Path('.eval-crypt/secret.key')
+    key = create_or_read_secret_key(key_path)
+    click.echo(f"Secret key stored at {key_path.absolute()}")
+    
+    # Install git hooks
+    install_hooks()
+    click.echo("Git hooks installed")
+    
+    # Configure git filters
+    configure_git_filters(force=force)
+    click.echo("Git filters configured")
+    
+    click.echo("eval-crypt initialized successfully")
+```
+
+2. Implement or update the `configure_git_filters` function in `eval_crypt/git_config.py`:
+
+```python
+import subprocess
+from pathlib import Path
+
+def configure_git_filters(force=False):
+    """
+    Configure the git clean and smudge filters in .git/config.
+    
+    Args:
+        force (bool): If True, overwrite existing configuration
+    
+    Returns:
+        bool: True if configuration was successful
+    """
+    # Check if we're in a git repository
+    try:
+        subprocess.run(['git', 'rev-parse', '--git-dir'], 
+                      check=True, capture_output=True, text=True)
+    except subprocess.CalledProcessError:
+        raise ValueError("Not a git repository")
+    
+    # Get the path to the eval-crypt executable
+    eval_crypt_path = Path(sys.executable).parent / "eval-crypt"
+    if not eval_crypt_path.exists():
+        # Try using the module name instead
+        eval_crypt_path = "eval-crypt"
+    
+    # Check if filter is already configured
+    try:
+        clean_cmd = subprocess.run(
+            ['git', 'config', '--get', 'filter.eval-crypt.clean'],
+            check=False, capture_output=True, text=True
+        ).stdout.strip()
+        
+        smudge_cmd = subprocess.run(
+            ['git', 'config', '--get', 'filter.eval-crypt.smudge'],
+            check=False, capture_output=True, text=True
+        ).stdout.strip()
+        
+        required_clean = f"{eval_crypt_path} clean"
+        required_smudge = f"{eval_crypt_path} smudge"
+        
+        if clean_cmd == required_clean and smudge_cmd == required_smudge and not force:
+            return True  # Already correctly configured
+    except Exception:
+        pass  # Continue with configuration
+    
+    # Configure the filter
+    subprocess.run(
+        ['git', 'config', 'filter.eval-crypt.clean', f"{eval_crypt_path} clean"],
+        check=True
+    )
+    
+    subprocess.run(
+        ['git', 'config', 'filter.eval-crypt.smudge', f"{eval_crypt_path} smudge"],
+        check=True
+    )
+    
+    return True
+
+def check_git_filters_configured():
+    """
+    Check if git filters are properly configured.
+    
+    Returns:
+        bool: True if filters are configured correctly
+    """
+    try:
+        clean_cmd = subprocess.run(
+            ['git', 'config', '--get', 'filter.eval-crypt.clean'],
+            check=False, capture_output=True, text=True
+        ).stdout.strip()
+        
+        smudge_cmd = subprocess.run(
+            ['git', 'config', '--get', 'filter.eval-crypt.smudge'],
+            check=False, capture_output=True, text=True
+        ).stdout.strip()
+        
+        # Check if commands contain "eval-crypt clean" and "eval-crypt smudge"
+        return "eval-crypt clean" in clean_cmd and "eval-crypt smudge" in smudge_cmd
+    except Exception:
+        return False
+```
+
+3. Update the imports in `cli.py` if needed:
+
+```python
+import click
+import os
+import sys
+from pathlib import Path
+
+from eval_crypt.crypto import create_or_read_secret_key
+from eval_crypt.gitattributes import add_sensitive_file, remove_sensitive_file, get_sensitive_files
+from eval_crypt.git_config import configure_git_filters, check_git_filters_configured
+from eval_crypt.hooks import install_hooks
+```
+
+4. Ensure the `--force` option allows users to reconfigure filters even if they already exist.
+
+# Test Strategy:
+1. Create unit tests for the enhanced init command and git filter configuration:
+
+```python
+# In tests/test_git_config.py
+import subprocess
+import pytest
+from unittest.mock import patch, MagicMock
+from pathlib import Path
+
+from eval_crypt.git_config import configure_git_filters, check_git_filters_configured
+
+def test_configure_git_filters():
+    # Mock subprocess.run to simulate git commands
+    with patch('subprocess.run') as mock_run:
+        # Configure mock to return success for git rev-parse
+        mock_run.return_value = MagicMock(stdout="", returncode=0)
+        
+        # Call the function
+        result = configure_git_filters()
+        
+        # Verify it was successful
+        assert result is True
+        
+        # Verify the correct git config commands were called
+        calls = mock_run.call_args_list
+        assert len(calls) >= 3  # At least 3 calls (rev-parse, clean, smudge)
+        
+        # Check that the filter.eval-crypt.clean and filter.eval-crypt.smudge configs were set
+        clean_call = False
+        smudge_call = False
+        for call in calls:
+            args = call[0][0]
+            if len(args) >= 3 and args[0:3] == ['git', 'config', 'filter.eval-crypt.clean']:
+                clean_call = True
+            if len(args) >= 3 and args[0:3] == ['git', 'config', 'filter.eval-crypt.smudge']:
+                smudge_call = True
+        
+        assert clean_call, "Did not set filter.eval-crypt.clean"
+        assert smudge_call, "Did not set filter.eval-crypt.smudge"
+
+def test_configure_git_filters_force():
+    # Test that force=True reconfigures even when already configured
+    with patch('subprocess.run') as mock_run:
+        # Simulate existing configuration
+        def side_effect(*args, **kwargs):
+            if args[0][1] == 'config' and args[0][2] == '--get':
+                return MagicMock(stdout="eval-crypt clean", returncode=0)
+            return MagicMock(stdout="", returncode=0)
+        
+        mock_run.side_effect = side_effect
+        
+        # Call with force=True
+        result = configure_git_filters(force=True)
+        
+        # Verify the git config commands were still called
+        calls = [call for call in mock_run.call_args_list if call[0][0][1] == 'config' and len(call[0][0]) > 2 and call[0][0][2] not in ('--get')]
+        assert len(calls) >= 2, "Should reconfigure even when already configured"
+
+# In tests/test_cli.py
+from click.testing import CliRunner
+import os
+from pathlib import Path
+import pytest
+from unittest.mock import patch, MagicMock
+
+from eval_crypt.cli import cli
+
+def test_init_command_configures_filters():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        # Create a mock git repository
+        os.system('git init')
+        
+        # Mock the filter configuration function
+        with patch('eval_crypt.git_config.configure_git_filters') as mock_configure:
+            mock_configure.return_value = True
+            
+            # Run the init command
+            result = runner.invoke(cli, ['init'])
+            
+            # Check that the command succeeded
+            assert result.exit_code == 0
+            
+            # Verify that configure_git_filters was called
+            mock_configure.assert_called_once()
+            
+            # Check for success message
+            assert "Git filters configured" in result.output
+            assert "eval-crypt initialized successfully" in result.output
+
+def test_init_command_with_force():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        # Create a mock git repository
+        os.system('git init')
+        
+        # Mock the filter configuration function
+        with patch('eval_crypt.git_config.configure_git_filters') as mock_configure:
+            mock_configure.return_value = True
+            
+            # Run the init command with --force
+            result = runner.invoke(cli, ['init', '--force'])
+            
+            # Check that the command succeeded
+            assert result.exit_code == 0
+            
+            # Verify that configure_git_filters was called with force=True
+            mock_configure.assert_called_once_with(force=True)
+```
+
+2. Perform integration tests in a real git repository:
+   - Create a temporary git repository
+   - Run `eval-crypt init`
+   - Verify that the filter is correctly configured in .git/config
+   - Add a file to be encrypted using `eval-crypt add`
+   - Modify and commit the file
+   - Verify that the file is encrypted in the git repository but decrypted in the working directory
+
+3. Test edge cases:
+   - Running init in a non-git repository
+   - Running init when filters are already configured
+   - Running init with --force when filters are already configured
+   - Running init when the eval-crypt executable cannot be found
