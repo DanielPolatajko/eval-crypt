@@ -207,3 +207,139 @@ if __name__ == "__main__":
 
 # Test Strategy:
 Create unit tests for each CLI command. Use the Click testing utilities to simulate command invocations. Test the init, add, remove, list, encrypt, and decrypt commands with various inputs. Verify that the commands correctly interact with the underlying modules. Test error handling and edge cases, such as adding a file that's already in the list or removing a file that's not in the list.
+
+# Subtasks:
+## 1. Complete CLI Implementation with Missing Imports [done]
+### Dependencies: None
+### Description: Finalize the CLI implementation by adding missing imports and completing the clean/smudge functions that are referenced but not fully implemented.
+### Details:
+1. Add the missing imports at the top of the file:
+```python
+import json
+from base64 import b64encode, b64decode
+from Crypto.Cipher import AES
+```
+
+2. Ensure the clean and smudge functions are properly implemented with the correct AES encryption/decryption logic.
+
+3. Verify that all CLI commands are properly connected to their corresponding functionality in the other modules.
+
+4. Add proper error handling for all commands, especially for file operations that might fail.
+
+5. Implement the TODO items for handling complex file patterns with glob in the encrypt and decrypt commands.
+
+## 2. Implement CLI Unit Tests [in-progress]
+### Dependencies: None
+### Description: Create comprehensive unit tests for the CLI commands to ensure they function correctly and handle edge cases appropriately.
+### Details:
+Create a new file `tests/test_cli.py` with the following structure:
+
+```python
+import os
+import tempfile
+import pytest
+from click.testing import CliRunner
+from pathlib import Path
+
+from eval_crypt.cli import cli, init, add, remove, list, encrypt, decrypt, clean, smudge
+
+@pytest.fixture
+def runner():
+    return CliRunner()
+
+@pytest.fixture
+def temp_git_repo():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Set up a mock git repo
+        os.chdir(tmpdir)
+        os.system('git init')
+        yield Path(tmpdir)
+
+def test_init_command(runner, temp_git_repo):
+    result = runner.invoke(init)
+    assert result.exit_code == 0
+    assert "eval-crypt initialized successfully" in result.output
+    assert Path("anti-pretraining.sk").exists()
+
+def test_add_remove_list_commands(runner, temp_git_repo):
+    # Test add command
+    result = runner.invoke(add, ["test.txt"])
+    assert result.exit_code == 0
+    assert "Added test.txt to sensitive files" in result.output
+    
+    # Test list command
+    result = runner.invoke(list)
+    assert result.exit_code == 0
+    assert "test.txt" in result.output
+    
+    # Test remove command
+    result = runner.invoke(remove, ["test.txt"])
+    assert result.exit_code == 0
+    assert "Removed test.txt from sensitive files" in result.output
+    
+    # Verify it's gone
+    result = runner.invoke(list)
+    assert result.exit_code == 0
+    assert "No sensitive files configured" in result.output
+
+def test_encrypt_decrypt_commands(runner, temp_git_repo):
+    # Create a test file
+    test_content = "This is sensitive data"
+    with open("test.txt", "w") as f:
+        f.write(test_content)
+    
+    # Add it as sensitive
+    runner.invoke(add, ["test.txt"])
+    
+    # Test encrypt
+    result = runner.invoke(encrypt)
+    assert result.exit_code == 0
+    assert "Encrypted test.txt" in result.output
+    assert Path("test.txt.enc").exists()
+    
+    # Test decrypt
+    os.remove("test.txt")  # Remove original to test decryption
+    result = runner.invoke(decrypt)
+    assert result.exit_code == 0
+    assert "Decrypted test.txt" in result.output
+    assert Path("test.txt").exists()
+    
+    # Verify content
+    with open("test.txt", "r") as f:
+        assert f.read() == test_content
+
+def test_clean_smudge_commands(runner, temp_git_repo):
+    # Create a test file
+    test_content = "This is sensitive data"
+    with open("test.txt", "w") as f:
+        f.write(test_content)
+    
+    # Test clean filter
+    result = runner.invoke(clean, ["test.txt"])
+    assert result.exit_code == 0
+    # Output should be JSON with nonce and ciphertext
+    assert "nonce" in result.output
+    assert "ciphertext" in result.output
+    
+    # Test smudge filter by piping clean output to smudge
+    with tempfile.NamedTemporaryFile(mode='w+') as tmp:
+        tmp.write(result.output)
+        tmp.flush()
+        tmp.seek(0)
+        # Simulate stdin with the encrypted content
+        smudge_result = runner.invoke(smudge, ["test.txt"], input=result.output)
+        assert smudge_result.exit_code == 0
+        assert smudge_result.output == test_content
+```
+
+## 3. Implement file management logic for CLI commands [pending]
+### Dependencies: None
+### Description: Replace the stub logic in the CLI commands (add, remove, list) with real logic to manage the list of files to be encrypted/decrypted. Store the managed file list in a config file (e.g., .eval-crypt-files or similar) and ensure all commands update and read from this file appropriately.
+### Details:
+- Implement persistent storage for the managed file list (e.g., in a .eval-crypt-files config file)
+- Update the add command to append new files to the list
+- Update the remove command to delete files from the list
+- Update the list command to display all managed files
+- Ensure proper error handling and idempotency for all commands
+- Update or add tests to cover the new logic
+

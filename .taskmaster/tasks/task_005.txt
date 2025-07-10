@@ -1,6 +1,6 @@
 # Task ID: 5
 # Title: Implement Git Hook Scripts
-# Status: pending
+# Status: done
 # Dependencies: 1, 2, 3, 4
 # Priority: high
 # Description: Create pre-commit and post-merge hook scripts to automatically encrypt and decrypt sensitive files.

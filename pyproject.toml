@@ -16,3 +16,14 @@ dependencies = [
 
 [project.scripts]
 eval-crypt = "eval_crypt.cli:main" 
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "pytest-click"
+]
+
+[tool.setuptools]
+packages = [
+    "eval_crypt"
+]
