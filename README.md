@@ -66,9 +66,9 @@ git commit -m "Add encrypted secret.txt"
   ```
 
 ## Security Note
-- The secret key is stored locally and should not be committed.
 - Anyone with access to the key and the repo can decrypt the files.
 - The tool is designed for research and collaboration, not for high-security use cases.
+- **Unlike traditional encryption tools, it is acceptable to commit and share the secret key in this project.** The security model assumes that LLMs will not be able to use the key during pretraining, even if it is available in the repository.
 
 ## Contributing
 Contributions are welcome! Please open issues or pull requests.
