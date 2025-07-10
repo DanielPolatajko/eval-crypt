@@ -1,2 +1,3 @@
 secret,txt filter=eval-crypt diff=eval-crypt merge=eval-crypt
 secrets.txt filter=eval-crypt diff=eval-crypt merge=eval-crypt
+supersecret.txt filter=eval-crypt diff=eval-crypt merge=eval-crypt
