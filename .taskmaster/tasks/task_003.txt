@@ -1,6 +1,6 @@
 # Task ID: 3
 # Title: Implement Git Attributes Configuration
-# Status: pending
+# Status: done
 # Dependencies: 1
 # Priority: high
 # Description: Create functionality to manage the .gitattributes file for tracking which files should be encrypted/decrypted.

@@ -1,6 +1,6 @@
 # Task ID: 2
 # Title: Implement Core Encryption/Decryption Module
-# Status: pending
+# Status: done
 # Dependencies: 1
 # Priority: high
 # Description: Create the core encryption and decryption functionality using AES encryption from pycryptodome.

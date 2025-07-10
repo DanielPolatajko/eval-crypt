@@ -1,6 +1,6 @@
 # Task ID: 4
 # Title: Implement Git Filter Configuration
-# Status: pending
+# Status: done
 # Dependencies: 1
 # Priority: high
 # Description: Create functionality to set up Git filter configuration for the eval-crypt tool.
