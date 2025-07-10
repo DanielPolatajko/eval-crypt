@@ -10,7 +10,51 @@
         "priority": "high",
         "dependencies": [],
         "status": "pending",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create Directory Structure",
+            "description": "Set up the initial directory structure for the eval-crypt package following standard Python package conventions.",
+            "details": "Create the following directory structure:\n- eval_crypt/ (main package)\n  - __init__.py (empty file to mark as package)\n  - cli.py (placeholder for CLI implementation)\n- tests/ (for unit tests)\n  - __init__.py (empty file)\n- docs/ (for documentation)\n  - index.md (placeholder for main documentation)",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 1
+          },
+          {
+            "id": 2,
+            "title": "Create pyproject.toml with Dependencies",
+            "description": "Create the pyproject.toml file with necessary dependencies for the package.",
+            "details": "Create pyproject.toml in the root directory with the following content:\n[build-system]\nrequires = [\"setuptools>=42\", \"wheel\"]\nbuild-backend = \"setuptools.build_meta\"\n\n[project]\nname = \"eval-crypt\"\nversion = \"0.1.0\"\ndescription = \"A tool to encrypt sensitive AI safety evaluation files in Git repositories\"\nreadme = \"README.md\"\nrequires-python = \">=3.8\"\nlicense = {text = \"MIT\"}\ndependencies = [\n    \"click>=8.0.0\",\n    \"pycryptodome>=3.15.0\",\n    \"pre-commit>=2.20.0\",\n]\n\n[project.scripts]\neval-crypt = \"eval_crypt.cli:main\"",
+            "status": "pending",
+            "dependencies": [
+              "1.1"
+            ],
+            "parentTaskId": 1
+          },
+          {
+            "id": 3,
+            "title": "Create Basic README.md",
+            "description": "Create a comprehensive README.md file with installation and usage instructions for the package.",
+            "details": "Create README.md in the root directory with the following sections:\n1. Project title and brief description\n2. Installation instructions (pip install, development setup)\n3. Basic usage examples\n4. Features overview\n5. License information\n\nExample content:\n# eval-crypt\n\nA tool to encrypt sensitive AI safety evaluation files in Git repositories.\n\n## Installation\n\n```bash\npip install eval-crypt\n```\n\nFor development:\n```bash\ngit clone https://github.com/username/eval-crypt.git\ncd eval-crypt\npip install -e .\n```\n\n## Usage\n\n```bash\n# Encrypt a file\neval-crypt encrypt path/to/sensitive/file.txt\n\n# Decrypt a file\neval-crypt decrypt path/to/encrypted/file.txt.enc\n```\n\n## Features\n\n- Secure AES encryption for sensitive files\n- Simple CLI interface\n- Git integration via pre-commit hooks\n\n## License\n\nMIT",
+            "status": "pending",
+            "dependencies": [
+              "1.2"
+            ],
+            "parentTaskId": 1
+          },
+          {
+            "id": 4,
+            "title": "Create Basic CLI Module Structure",
+            "description": "Create the initial CLI module structure in the eval_crypt package to enable the command-line interface.",
+            "details": "Create the cli.py file in the eval_crypt directory with a basic CLI structure using Click:\nimport click\n\n@click.group()\ndef main():\n    \"\"\"eval-crypt: A tool to encrypt sensitive AI safety evaluation files.\"\"\"\n    pass\n\n@main.command()\n@click.argument('file_path', type=click.Path(exists=True))\n@click.option('--output', '-o', help='Output file path')\ndef encrypt(file_path, output):\n    \"\"\"Encrypt a sensitive file.\"\"\"\n    click.echo(f\"Encrypting {file_path}\")\n    # Encryption logic will be implemented later\n\n@main.command()\n@click.argument('file_path', type=click.Path(exists=True))\n@click.option('--output', '-o', help='Output file path')\ndef decrypt(file_path, output):\n    \"\"\"Decrypt an encrypted file.\"\"\"\n    click.echo(f\"Decrypting {file_path}\")\n    # Decryption logic will be implemented later\n\nif __name__ == '__main__':\n    main()",
+            "status": "pending",
+            "dependencies": [
+              "1.1",
+              "1.2"
+            ],
+            "parentTaskId": 1
+          }
+        ]
       },
       {
         "id": 2,
