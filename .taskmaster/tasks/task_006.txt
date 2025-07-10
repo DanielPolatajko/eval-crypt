@@ -1,6 +1,6 @@
 # Task ID: 6
 # Title: Implement CLI Commands
-# Status: pending
+# Status: done
 # Dependencies: 2, 3, 4, 5
 # Priority: high
 # Description: Create a command-line interface using Click to provide easy access to eval-crypt functionality.
@@ -228,7 +228,7 @@ from Crypto.Cipher import AES
 
 5. Implement the TODO items for handling complex file patterns with glob in the encrypt and decrypt commands.
 
-## 2. Implement CLI Unit Tests [in-progress]
+## 2. Implement CLI Unit Tests [done]
 ### Dependencies: None
 ### Description: Create comprehensive unit tests for the CLI commands to ensure they function correctly and handle edge cases appropriately.
 ### Details:
@@ -332,7 +332,7 @@ def test_clean_smudge_commands(runner, temp_git_repo):
         assert smudge_result.output == test_content
 ```
 
-## 3. Implement file management logic for CLI commands [pending]
+## 3. Implement file management logic for CLI commands [done]
 ### Dependencies: None
 ### Description: Replace the stub logic in the CLI commands (add, remove, list) with real logic to manage the list of files to be encrypted/decrypted. Store the managed file list in a config file (e.g., .eval-crypt-files or similar) and ensure all commands update and read from this file appropriately.
 ### Details:
@@ -342,4 +342,13 @@ def test_clean_smudge_commands(runner, temp_git_repo):
 - Update the list command to display all managed files
 - Ensure proper error handling and idempotency for all commands
 - Update or add tests to cover the new logic
+<info added on 2025-07-10T12:43:50.680Z>
+Implement persistent storage for managed file list in .gitattributes using 'filter=eval-crypt' attribute, similar to the transcrypt project
+- Update the add command to append new file patterns to .gitattributes with the 'filter=eval-crypt' attribute
+- Update the remove command to delete file patterns from .gitattributes
+- Update the list command to display all managed files by parsing .gitattributes
+- Ensure .gitattributes is the canonical source of truth for which files are managed for encryption/decryption
+- Implement proper error handling for cases where .gitattributes doesn't exist or has invalid format
+- Update or add tests to cover the new .gitattributes-based storage logic
+</info added on 2025-07-10T12:43:50.680Z>
 

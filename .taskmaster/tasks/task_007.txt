@@ -1,11 +1,11 @@
 # Task ID: 7
 # Title: Implement Git Filter Scripts
-# Status: pending
+# Status: done
 # Dependencies: 2, 6
 # Priority: high
 # Description: Create the clean and smudge filter scripts that Git will use to process files during staging and checkout.
 # Details:
-Enhance the CLI module to properly handle Git filter operations. Update the `eval_crypt/cli.py` file to include proper implementations of the clean and smudge commands:
+Enhance the CLI module to properly handle Git filter operations. Update the `eval_crypt/cli.py` file to include implementations of the clean and smudge functions, but note that these should NOT be exposed as user-facing CLI commands. These functions are only to be used by the Git filter/hook integration, not directly by users.
 
 ```python
 from Crypto.Cipher import AES
@@ -15,11 +15,10 @@ import sys
 
 # ... existing CLI code ...
 
-@cli.command()
-@click.argument("file_path")
-def clean(file_path):
-    """Git clean filter to encrypt a file (used by Git)."""
-    # This is called by Git during staging
+# Note: These are NOT exposed as CLI commands
+# They are internal functions used by Git filters
+def clean_filter(file_path):
+    """Git clean filter to encrypt a file (used by Git during staging)."""
     sk = create_or_read_secret_key()
     try:
         # Read the file content
@@ -52,11 +51,8 @@ def clean(file_path):
             sys.stdout.buffer.write(f.read())
 
 
-@cli.command()
-@click.argument("file_path")
-def smudge(file_path):
-    """Git smudge filter to decrypt a file (used by Git)."""
-    # This is called by Git during checkout
+def smudge_filter(file_path):
+    """Git smudge filter to decrypt a file (used by Git during checkout)."""
     sk = create_or_read_secret_key()
     try:
         # Read from stdin (Git provides the content)
@@ -87,7 +83,7 @@ def smudge(file_path):
         sys.stdout.buffer.write(content)
 ```
 
-Also, create a module `eval_crypt/filters.py` to handle the filter logic separately from the CLI:
+Also, create a module `eval_crypt/filters.py` to handle the filter logic separately from the CLI. These functions will be used internally by the Git filter integration:
 
 ```python
 from Crypto.Cipher import AES
@@ -134,4 +130,4 @@ def decrypt_content(content: bytes, secret_key: bytes) -> bytes:
 ```
 
 # Test Strategy:
-Create unit tests for the filter functions. Test encrypting and decrypting content with various types (text, binary). Test handling of content that is already encrypted. Test the clean and smudge CLI commands by mocking stdin and stdout. Verify that the commands correctly process files during Git operations.
+Create unit tests for the filter functions. Test encrypting and decrypting content with various types (text, binary). Test handling of content that is already encrypted. Test the clean and smudge filter functions by mocking stdin and stdout. Verify that the functions correctly process files during Git operations. Ensure that these functions are not exposed as user-facing CLI commands but are properly integrated with Git filters.

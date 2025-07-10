@@ -1,5 +1,7 @@
 import click
 from eval_crypt.gitattributes import add_to_gitattributes, remove_from_gitattributes, list_gitattributes, GITATTRIBUTES_PATH
+from eval_crypt.crypto import generate_key, KEY_FILE
+import os
 
 @click.group()
 def main():
@@ -8,12 +10,17 @@ def main():
 
 @main.command()
 def init():
-    """Initialize eval-crypt by creating .gitattributes if it does not exist."""
+    """Initialize eval-crypt by creating .gitattributes and a secret key if they do not exist."""
     if GITATTRIBUTES_PATH.exists():
         click.echo(".gitattributes already exists.")
     else:
         GITATTRIBUTES_PATH.touch()
         click.echo("Created .gitattributes.")
+    if os.path.exists(KEY_FILE):
+        click.echo(f"Secret key already exists at {KEY_FILE}.")
+    else:
+        generate_key()
+        click.echo(f"Created secret key at {KEY_FILE}.")
 
 @main.command()
 @click.argument('file_path', type=click.Path())
