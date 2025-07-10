@@ -13,4 +13,9 @@ def generate_key(key_file: str = KEY_FILE) -> bytes:
     else:
         with open(key_file, "rb") as f:
             key = f.read()
-    return key 
+    return key
+
+
+def get_key() -> bytes:
+    """Load the AES key from KEY_FILE, generating it if necessary."""
+    return generate_key(KEY_FILE) 
