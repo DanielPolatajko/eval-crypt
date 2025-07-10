@@ -20,7 +20,8 @@ eval-crypt = "eval_crypt.cli:main"
 [project.optional-dependencies]
 test = [
     "pytest",
-    "pytest-click"
+    "pytest-click",
+    "pre-commit"
 ]
 
 [tool.setuptools]

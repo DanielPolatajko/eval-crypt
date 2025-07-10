@@ -1,37 +1,40 @@
-import os
+from pathlib import Path
+import click
 
-GITATTRIBUTES_PATH = os.path.join(os.getcwd(), ".gitattributes")
-FILTER_NAME = "eval-crypt"
+GITATTRIBUTES_PATH = Path('.gitattributes')
+FILTER_ATTR = 'filter=eval-crypt'
 
-def add_pattern(pattern: str):
-    """Add a file pattern to .gitattributes for eval-crypt filtering."""
-    line = f"{pattern} filter={FILTER_NAME}\n"
-    if not os.path.exists(GITATTRIBUTES_PATH):
-        with open(GITATTRIBUTES_PATH, "w") as f:
-            f.write(line)
-        return
-    with open(GITATTRIBUTES_PATH, "r+") as f:
+def add_to_gitattributes(file_path):
+    if not GITATTRIBUTES_PATH.exists():
+        click.echo(".gitattributes not found. Please run 'eval-crypt init' first.")
+        return None
+    entry = f"{file_path} {FILTER_ATTR}\n"
+    with GITATTRIBUTES_PATH.open('r+', encoding='utf-8') as f:
         lines = f.readlines()
-        if line in lines:
-            return
-        f.write(line)
+        if entry in lines:
+            return False  # Already present
+        f.write(entry)
+    return True
 
-def remove_pattern(pattern: str):
-    """Remove a file pattern from .gitattributes for eval-crypt filtering."""
-    line = f"{pattern} filter={FILTER_NAME}\n"
-    if not os.path.exists(GITATTRIBUTES_PATH):
-        return
-    with open(GITATTRIBUTES_PATH, "r") as f:
+def remove_from_gitattributes(file_path):
+    if not GITATTRIBUTES_PATH.exists():
+        click.echo(".gitattributes not found. Please run 'eval-crypt init' first.")
+        return None
+    entry = f"{file_path} {FILTER_ATTR}\n"
+    with GITATTRIBUTES_PATH.open('r', encoding='utf-8') as f:
         lines = f.readlines()
-    with open(GITATTRIBUTES_PATH, "w") as f:
-        for l in lines:
-            if l != line:
-                f.write(l)
+    if entry not in lines:
+        return False
+    lines = [line for line in lines if line != entry]
+    with GITATTRIBUTES_PATH.open('w', encoding='utf-8') as f:
+        f.writelines(lines)
+    return True
 
-def list_patterns():
-    """List all file patterns managed for eval-crypt filtering in .gitattributes."""
-    if not os.path.exists(GITATTRIBUTES_PATH):
-        return []
-    with open(GITATTRIBUTES_PATH, "r") as f:
+def list_gitattributes():
+    if not GITATTRIBUTES_PATH.exists():
+        click.echo(".gitattributes not found. Please run 'eval-crypt init' first.")
+        return None
+    with GITATTRIBUTES_PATH.open('r', encoding='utf-8') as f:
         lines = f.readlines()
-    return [l.strip() for l in lines if f"filter={FILTER_NAME}" in l] 
+    managed = [line.split()[0] for line in lines if FILTER_ATTR in line]
+    return managed 
