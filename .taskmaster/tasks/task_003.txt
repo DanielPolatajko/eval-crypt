@@ -1,0 +1,84 @@
+# Task ID: 3
+# Title: Implement Git Attributes Configuration
+# Status: pending
+# Dependencies: 1
+# Priority: high
+# Description: Create functionality to manage the .gitattributes file for tracking which files should be encrypted/decrypted.
+# Details:
+Create a module `eval_crypt/gitattributes.py` to handle the .gitattributes file configuration:
+
+```python
+from pathlib import Path
+from typing import Union, List, Set
+import re
+
+
+def add_sensitive_file(file_pattern: str, gitattributes_path: Union[str, Path] = ".gitattributes") -> None:
+    """Add a file pattern to .gitattributes as a sensitive file."""
+    gitattributes_path = Path(gitattributes_path)
+    
+    # Create .gitattributes if it doesn't exist
+    if not gitattributes_path.exists():
+        gitattributes_path.parent.mkdir(parents=True, exist_ok=True)
+        gitattributes_path.touch()
+    
+    # Read existing content
+    lines = []
+    if gitattributes_path.stat().st_size > 0:
+        with open(gitattributes_path, "r") as f:
+            lines = f.readlines()
+    
+    # Check if the file pattern is already in .gitattributes
+    pattern_regex = re.compile(f"^{re.escape(file_pattern)}\s+filter=eval-crypt")
+    for line in lines:
+        if pattern_regex.match(line.strip()):
+            return  # File pattern already exists
+    
+    # Add the new file pattern
+    with open(gitattributes_path, "a") as f:
+        if lines and not lines[-1].endswith("\n"):
+            f.write("\n")
+        f.write(f"{file_pattern} filter=eval-crypt\n")
+
+
+def remove_sensitive_file(file_pattern: str, gitattributes_path: Union[str, Path] = ".gitattributes") -> bool:
+    """Remove a file pattern from .gitattributes."""
+    gitattributes_path = Path(gitattributes_path)
+    
+    if not gitattributes_path.exists():
+        return False
+    
+    # Read existing content
+    with open(gitattributes_path, "r") as f:
+        lines = f.readlines()
+    
+    # Filter out the line with the file pattern
+    pattern_regex = re.compile(f"^{re.escape(file_pattern)}\s+filter=eval-crypt")
+    new_lines = [line for line in lines if not pattern_regex.match(line.strip())]
+    
+    # Write back the filtered content
+    with open(gitattributes_path, "w") as f:
+        f.writelines(new_lines)
+    
+    return len(new_lines) != len(lines)
+
+
+def get_sensitive_files(gitattributes_path: Union[str, Path] = ".gitattributes") -> List[str]:
+    """Get the list of sensitive file patterns from .gitattributes."""
+    gitattributes_path = Path(gitattributes_path)
+    
+    if not gitattributes_path.exists():
+        return []
+    
+    sensitive_files = []
+    with open(gitattributes_path, "r") as f:
+        for line in f:
+            if "filter=eval-crypt" in line:
+                file_pattern = line.split()[0]
+                sensitive_files.append(file_pattern)
+    
+    return sensitive_files
+```
+
+# Test Strategy:
+Create unit tests for adding, removing, and retrieving sensitive file patterns from .gitattributes. Test with various file patterns, including wildcards. Verify that duplicate entries are not added and that the file is created if it doesn't exist. Test removing patterns that don't exist and verify the function returns the correct boolean value.

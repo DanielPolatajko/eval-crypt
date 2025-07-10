@@ -1,0 +1,89 @@
+# Task ID: 4
+# Title: Implement Git Filter Configuration
+# Status: pending
+# Dependencies: 1
+# Priority: high
+# Description: Create functionality to set up Git filter configuration for the eval-crypt tool.
+# Details:
+Create a module `eval_crypt/git_config.py` to handle Git filter configuration:
+
+```python
+import subprocess
+from pathlib import Path
+from typing import Union, Optional
+
+
+def configure_git_filters(repo_path: Union[str, Path] = ".") -> bool:
+    """Configure Git filters for eval-crypt in the repository."""
+    repo_path = Path(repo_path)
+    
+    try:
+        # Set up clean filter (encryption)
+        subprocess.run(
+            ["git", "config", "filter.eval-crypt.clean", "eval-crypt clean %f"],
+            cwd=repo_path,
+            check=True,
+        )
+        
+        # Set up smudge filter (decryption)
+        subprocess.run(
+            ["git", "config", "filter.eval-crypt.smudge", "eval-crypt smudge %f"],
+            cwd=repo_path,
+            check=True,
+        )
+        
+        # Set up required flag to ensure filters run even when large files are processed
+        subprocess.run(
+            ["git", "config", "filter.eval-crypt.required", "true"],
+            cwd=repo_path,
+            check=True,
+        )
+        
+        return True
+    except subprocess.CalledProcessError:
+        return False
+
+
+def check_git_filters_configured(repo_path: Union[str, Path] = ".") -> bool:
+    """Check if Git filters for eval-crypt are configured in the repository."""
+    repo_path = Path(repo_path)
+    
+    try:
+        # Check clean filter
+        clean_result = subprocess.run(
+            ["git", "config", "--get", "filter.eval-crypt.clean"],
+            cwd=repo_path,
+            capture_output=True,
+            text=True,
+        )
+        
+        # Check smudge filter
+        smudge_result = subprocess.run(
+            ["git", "config", "--get", "filter.eval-crypt.smudge"],
+            cwd=repo_path,
+            capture_output=True,
+            text=True,
+        )
+        
+        # Check required flag
+        required_result = subprocess.run(
+            ["git", "config", "--get", "filter.eval-crypt.required"],
+            cwd=repo_path,
+            capture_output=True,
+            text=True,
+        )
+        
+        return (
+            clean_result.returncode == 0 and
+            smudge_result.returncode == 0 and
+            required_result.returncode == 0 and
+            "eval-crypt clean" in clean_result.stdout and
+            "eval-crypt smudge" in smudge_result.stdout and
+            "true" in required_result.stdout
+        )
+    except subprocess.CalledProcessError:
+        return False
+```
+
+# Test Strategy:
+Create unit tests for configuring and checking Git filters. Use a temporary Git repository for testing. Verify that the filters are correctly configured and that the check function correctly identifies when filters are or are not configured. Test error handling when Git commands fail.

@@ -1,0 +1,162 @@
+# Task ID: 1
+# Title: Setup Project Structure and Dependencies
+# Status: pending
+# Dependencies: None
+# Priority: high
+# Description: Initialize the project structure and create the pyproject.toml file with necessary dependencies for the eval-crypt package.
+# Details:
+Create a standard Python package structure with the following components:
+1. Create directory structure:
+   - eval_crypt/ (main package)
+   - tests/
+   - docs/
+2. Create pyproject.toml with the following dependencies:
+   - pycryptodome (for AES encryption)
+   - click (for CLI implementation)
+   - pre-commit (for git hooks)
+3. Setup basic package metadata:
+```toml
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "eval-crypt"
+version = "0.1.0"
+description = "A tool to encrypt sensitive AI safety evaluation files in Git repositories"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+dependencies = [
+    "click>=8.0.0",
+    "pycryptodome>=3.15.0",
+    "pre-commit>=2.20.0",
+]
+
+[project.scripts]
+eval-crypt = "eval_crypt.cli:main"
+```
+4. Create a basic README.md with installation and usage instructions
+
+# Test Strategy:
+Verify the package structure is correct and that the package can be installed with pip install -e . in development mode. Ensure all dependencies are correctly specified and the package metadata is accurate.
+
+# Subtasks:
+## 1. Create Directory Structure [done]
+### Dependencies: None
+### Description: Set up the initial directory structure for the eval-crypt package following standard Python package conventions.
+### Details:
+Create the following directory structure:
+- eval_crypt/ (main package)
+  - __init__.py (empty file to mark as package)
+  - cli.py (placeholder for CLI implementation)
+- tests/ (for unit tests)
+  - __init__.py (empty file)
+- docs/ (for documentation)
+  - index.md (placeholder for main documentation)
+
+## 2. Create pyproject.toml with Dependencies [pending]
+### Dependencies: 1.1
+### Description: Create the pyproject.toml file with necessary dependencies for the package.
+### Details:
+Create pyproject.toml in the root directory with the following content:
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "eval-crypt"
+version = "0.1.0"
+description = "A tool to encrypt sensitive AI safety evaluation files in Git repositories"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+dependencies = [
+    "click>=8.0.0",
+    "pycryptodome>=3.15.0",
+    "pre-commit>=2.20.0",
+]
+
+[project.scripts]
+eval-crypt = "eval_crypt.cli:main"
+
+## 3. Create Basic README.md [pending]
+### Dependencies: 1.2
+### Description: Create a comprehensive README.md file with installation and usage instructions for the package.
+### Details:
+Create README.md in the root directory with the following sections:
+1. Project title and brief description
+2. Installation instructions (pip install, development setup)
+3. Basic usage examples
+4. Features overview
+5. License information
+
+Example content:
+# eval-crypt
+
+A tool to encrypt sensitive AI safety evaluation files in Git repositories.
+
+## Installation
+
+```bash
+pip install eval-crypt
+```
+
+For development:
+```bash
+git clone https://github.com/username/eval-crypt.git
+cd eval-crypt
+pip install -e .
+```
+
+## Usage
+
+```bash
+# Encrypt a file
+eval-crypt encrypt path/to/sensitive/file.txt
+
+# Decrypt a file
+eval-crypt decrypt path/to/encrypted/file.txt.enc
+```
+
+## Features
+
+- Secure AES encryption for sensitive files
+- Simple CLI interface
+- Git integration via pre-commit hooks
+
+## License
+
+MIT
+
+## 4. Create Basic CLI Module Structure [pending]
+### Dependencies: 1.1, 1.2
+### Description: Create the initial CLI module structure in the eval_crypt package to enable the command-line interface.
+### Details:
+Create the cli.py file in the eval_crypt directory with a basic CLI structure using Click:
+import click
+
+@click.group()
+def main():
+    """eval-crypt: A tool to encrypt sensitive AI safety evaluation files."""
+    pass
+
+@main.command()
+@click.argument('file_path', type=click.Path(exists=True))
+@click.option('--output', '-o', help='Output file path')
+def encrypt(file_path, output):
+    """Encrypt a sensitive file."""
+    click.echo(f"Encrypting {file_path}")
+    # Encryption logic will be implemented later
+
+@main.command()
+@click.argument('file_path', type=click.Path(exists=True))
+@click.option('--output', '-o', help='Output file path')
+def decrypt(file_path, output):
+    """Decrypt an encrypted file."""
+    click.echo(f"Decrypting {file_path}")
+    # Decryption logic will be implemented later
+
+if __name__ == '__main__':
+    main()
+

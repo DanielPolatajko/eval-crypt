@@ -1,0 +1,137 @@
+# Task ID: 7
+# Title: Implement Git Filter Scripts
+# Status: pending
+# Dependencies: 2, 6
+# Priority: high
+# Description: Create the clean and smudge filter scripts that Git will use to process files during staging and checkout.
+# Details:
+Enhance the CLI module to properly handle Git filter operations. Update the `eval_crypt/cli.py` file to include proper implementations of the clean and smudge commands:
+
+```python
+from Crypto.Cipher import AES
+from base64 import b64encode, b64decode
+import json
+import sys
+
+# ... existing CLI code ...
+
+@cli.command()
+@click.argument("file_path")
+def clean(file_path):
+    """Git clean filter to encrypt a file (used by Git)."""
+    # This is called by Git during staging
+    sk = create_or_read_secret_key()
+    try:
+        # Read the file content
+        with open(file_path, "rb") as f:
+            content = f.read()
+        
+        # Check if the content is already encrypted
+        try:
+            json_content = json.loads(content)
+            if "nonce" in json_content and "ciphertext" in json_content:
+                # Already encrypted, pass through
+                sys.stdout.buffer.write(content)
+                return
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            # Not JSON, continue with encryption
+            pass
+        
+        # Encrypt the content
+        cipher = AES.new(sk, AES.MODE_CTR)
+        encrypted = cipher.encrypt(content)
+        nonce = b64encode(cipher.nonce).decode("utf-8")
+        ct = b64encode(encrypted).decode("utf-8")
+        result = json.dumps({"nonce": nonce, "ciphertext": ct})
+        
+        # Output to stdout for Git to capture
+        sys.stdout.write(result)
+    except Exception as e:
+        # On error, return the original content
+        with open(file_path, "rb") as f:
+            sys.stdout.buffer.write(f.read())
+
+
+@cli.command()
+@click.argument("file_path")
+def smudge(file_path):
+    """Git smudge filter to decrypt a file (used by Git)."""
+    # This is called by Git during checkout
+    sk = create_or_read_secret_key()
+    try:
+        # Read from stdin (Git provides the content)
+        content = sys.stdin.buffer.read()
+        
+        # Try to parse as JSON
+        try:
+            # Try to decode as text
+            text_content = content.decode('utf-8')
+            data = json.loads(text_content)
+            
+            # Check if it's our encrypted format
+            if "nonce" in data and "ciphertext" in data:
+                nonce = b64decode(data["nonce"])
+                ciphertext = b64decode(data["ciphertext"])
+                cipher = AES.new(sk, AES.MODE_CTR, nonce=nonce)
+                decrypted = cipher.decrypt(ciphertext)
+                sys.stdout.buffer.write(decrypted)
+                return
+        except (UnicodeDecodeError, json.JSONDecodeError, KeyError, ValueError):
+            # Not our format or not valid JSON, continue
+            pass
+        
+        # If we get here, it's not encrypted or not in our format
+        sys.stdout.buffer.write(content)
+    except Exception as e:
+        # On error, return the input unchanged
+        sys.stdout.buffer.write(content)
+```
+
+Also, create a module `eval_crypt/filters.py` to handle the filter logic separately from the CLI:
+
+```python
+from Crypto.Cipher import AES
+from base64 import b64encode, b64decode
+import json
+from typing import Union, Tuple, Optional
+
+
+def is_encrypted(content: bytes) -> bool:
+    """Check if content is already in our encrypted format."""
+    try:
+        data = json.loads(content.decode('utf-8'))
+        return "nonce" in data and "ciphertext" in data
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return False
+
+
+def encrypt_content(content: bytes, secret_key: bytes) -> bytes:
+    """Encrypt content using AES encryption."""
+    if is_encrypted(content):
+        return content  # Already encrypted
+    
+    cipher = AES.new(secret_key, AES.MODE_CTR)
+    encrypted = cipher.encrypt(content)
+    nonce = b64encode(cipher.nonce).decode("utf-8")
+    ct = b64encode(encrypted).decode("utf-8")
+    result = json.dumps({"nonce": nonce, "ciphertext": ct})
+    
+    return result.encode('utf-8')
+
+
+def decrypt_content(content: bytes, secret_key: bytes) -> bytes:
+    """Decrypt content that was encrypted using encrypt_content."""
+    if not is_encrypted(content):
+        return content  # Not encrypted or not in our format
+    
+    data = json.loads(content.decode('utf-8'))
+    nonce = b64decode(data["nonce"])
+    ciphertext = b64decode(data["ciphertext"])
+    cipher = AES.new(secret_key, AES.MODE_CTR, nonce=nonce)
+    decrypted = cipher.decrypt(ciphertext)
+    
+    return decrypted
+```
+
+# Test Strategy:
+Create unit tests for the filter functions. Test encrypting and decrypting content with various types (text, binary). Test handling of content that is already encrypted. Test the clean and smudge CLI commands by mocking stdin and stdout. Verify that the commands correctly process files during Git operations.

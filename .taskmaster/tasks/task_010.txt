@@ -1,0 +1,161 @@
+# Task ID: 10
+# Title: Package and Publish to PyPI
+# Status: pending
+# Dependencies: 1, 2, 3, 4, 5, 6, 7, 8, 9
+# Priority: medium
+# Description: Prepare the package for distribution and publish it to PyPI for easy installation.
+# Details:
+Complete the following steps to package and publish eval-crypt to PyPI:
+
+1. Ensure the package structure is correct:
+```
+eval-crypt/
+├── eval_crypt/
+│   ├── __init__.py
+│   ├── cli.py
+│   ├── crypto.py
+│   ├── filters.py
+│   ├── git_config.py
+│   ├── gitattributes.py
+│   └── hooks.py
+├── tests/
+│   ├── conftest.py
+│   ├── test_cli.py
+│   ├── test_crypto.py
+│   ├── test_filters.py
+│   ├── test_git_config.py
+│   ├── test_gitattributes.py
+│   └── test_hooks.py
+├── docs/
+│   ├── technical.md
+│   └── usage.md
+├── .gitignore
+├── LICENSE
+├── pyproject.toml
+└── README.md
+```
+
+2. Update `__init__.py` to expose the package version and main functions:
+```python
+"""eval-crypt: Encrypt sensitive AI safety evaluation files in Git repositories."""
+
+__version__ = "0.1.0"
+
+from eval_crypt.crypto import create_or_read_secret_key, encrypt_file, decrypt_file
+from eval_crypt.gitattributes import add_sensitive_file, remove_sensitive_file, get_sensitive_files
+from eval_crypt.git_config import configure_git_filters, check_git_filters_configured
+from eval_crypt.hooks import install_hooks, check_hooks_installed
+```
+
+3. Create a `.gitignore` file:
+```
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Secret key
+anti-pretraining.sk
+```
+
+4. Create a `LICENSE` file (MIT License):
+```
+MIT License
+
+Copyright (c) 2023 eval-crypt Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+5. Build the package:
+```bash
+python -m pip install --upgrade build
+python -m build
+```
+
+6. Test the package locally:
+```bash
+python -m pip install --editable .
+```
+
+7. Create a PyPI account if you don't have one.
+
+8. Install twine for uploading to PyPI:
+```bash
+python -m pip install --upgrade twine
+```
+
+9. Upload to TestPyPI first to verify everything works:
+```bash
+python -m twine upload --repository testpypi dist/*
+```
+
+10. Test installation from TestPyPI:
+```bash
+python -m pip install --index-url https://test.pypi.org/simple/ eval-crypt
+```
+
+11. Upload to the real PyPI:
+```bash
+python -m twine upload dist/*
+```
+
+12. Verify installation from PyPI:
+```bash
+python -m pip install eval-crypt
+```
+
+13. Create a GitHub repository for the project and push the code:
+```bash
+git init
+git add .
+git commit -m "Initial commit"
+git remote add origin https://github.com/yourusername/eval-crypt.git
+git push -u origin main
+```
+
+# Test Strategy:
+Test the package installation from both TestPyPI and PyPI. Verify that the package can be installed with pip and that all commands work correctly after installation. Test in a clean virtual environment to ensure all dependencies are correctly specified. Verify that the entry points are correctly configured and that the eval-crypt command is available after installation.

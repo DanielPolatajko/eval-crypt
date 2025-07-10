@@ -1,0 +1,99 @@
+# Task ID: 5
+# Title: Implement Git Hook Scripts
+# Status: pending
+# Dependencies: 1, 2, 3, 4
+# Priority: high
+# Description: Create pre-commit and post-merge hook scripts to automatically encrypt and decrypt sensitive files.
+# Details:
+Create a module `eval_crypt/hooks.py` to handle Git hook installation and implementation:
+
+```python
+import os
+import stat
+from pathlib import Path
+from typing import Union, Optional
+
+
+# Pre-commit hook script template
+PRE_COMMIT_HOOK = """#!/bin/sh
+# eval-crypt pre-commit hook to encrypt sensitive files
+
+# Run eval-crypt encrypt command
+eval-crypt encrypt
+
+# Continue with the commit
+exit 0
+"""
+
+# Post-merge hook script template
+POST_MERGE_HOOK = """#!/bin/sh
+# eval-crypt post-merge hook to decrypt sensitive files
+
+# Run eval-crypt decrypt command
+eval-crypt decrypt
+
+# Continue with the merge
+exit 0
+"""
+
+
+def install_hooks(repo_path: Union[str, Path] = ".") -> bool:
+    """Install pre-commit and post-merge hooks in the repository."""
+    repo_path = Path(repo_path)
+    hooks_dir = repo_path / ".git" / "hooks"
+    
+    if not hooks_dir.exists():
+        return False
+    
+    # Install pre-commit hook
+    pre_commit_path = hooks_dir / "pre-commit"
+    with open(pre_commit_path, "w") as f:
+        f.write(PRE_COMMIT_HOOK)
+    
+    # Make pre-commit hook executable
+    os.chmod(pre_commit_path, os.stat(pre_commit_path).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+    
+    # Install post-merge hook
+    post_merge_path = hooks_dir / "post-merge"
+    with open(post_merge_path, "w") as f:
+        f.write(POST_MERGE_HOOK)
+    
+    # Make post-merge hook executable
+    os.chmod(post_merge_path, os.stat(post_merge_path).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+    
+    return True
+
+
+def check_hooks_installed(repo_path: Union[str, Path] = ".") -> bool:
+    """Check if eval-crypt hooks are installed in the repository."""
+    repo_path = Path(repo_path)
+    hooks_dir = repo_path / ".git" / "hooks"
+    
+    if not hooks_dir.exists():
+        return False
+    
+    # Check pre-commit hook
+    pre_commit_path = hooks_dir / "pre-commit"
+    if not pre_commit_path.exists():
+        return False
+    
+    with open(pre_commit_path, "r") as f:
+        pre_commit_content = f.read()
+        if "eval-crypt encrypt" not in pre_commit_content:
+            return False
+    
+    # Check post-merge hook
+    post_merge_path = hooks_dir / "post-merge"
+    if not post_merge_path.exists():
+        return False
+    
+    with open(post_merge_path, "r") as f:
+        post_merge_content = f.read()
+        if "eval-crypt decrypt" not in post_merge_content:
+            return False
+    
+    return True
+```
+
+# Test Strategy:
+Create unit tests for installing and checking Git hooks. Use a temporary Git repository for testing. Verify that the hooks are correctly installed with the right permissions and content. Test the check function to ensure it correctly identifies when hooks are or are not installed. Test error handling when the .git/hooks directory doesn't exist.
