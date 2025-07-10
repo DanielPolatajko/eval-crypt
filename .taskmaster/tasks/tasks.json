@@ -5,12 +5,57 @@
         "id": 1,
         "title": "Setup Project Structure and Dependencies",
         "description": "Initialize the project structure and create the pyproject.toml file with necessary dependencies for the eval-crypt package.",
-        "details": "Create a standard Python package structure with the following components:\n1. Create directory structure:\n   - eval_crypt/ (main package)\n   - tests/\n   - docs/\n2. Create pyproject.toml with the following dependencies:\n   - pycryptodome (for AES encryption)\n   - click (for CLI implementation)\n   - pre-commit (for git hooks)\n3. Setup basic package metadata:\n```toml\n[build-system]\nrequires = [\"setuptools>=42\", \"wheel\"]\nbuild-backend = \"setuptools.build_meta\"\n\n[project]\nname = \"eval-crypt\"\nversion = \"0.1.0\"\ndescription = \"A tool to encrypt sensitive AI safety evaluation files in Git repositories\"\nreadme = \"README.md\"\nrequires-python = \">=3.8\"\nlicense = {text = \"MIT\"}\ndependencies = [\n    \"click>=8.0.0\",\n    \"pycryptodome>=3.15.0\",\n    \"pre-commit>=2.20.0\",\n]\n\n[project.scripts]\neval-crypt = \"eval_crypt.cli:main\"\n```\n4. Create a basic README.md with installation and usage instructions",
-        "testStrategy": "Verify the package structure is correct and that the package can be installed with pip install -e . in development mode. Ensure all dependencies are correctly specified and the package metadata is accurate.",
-        "priority": "high",
-        "dependencies": [],
         "status": "pending",
+        "dependencies": [],
+        "priority": "high",
+        "details": "Create a standard Python package structure with the following components:\n1. Create directory structure:\n   - eval_crypt/ (main package)\n   - tests/\n   - docs/\n2. Create pyproject.toml with the following dependencies:\n   - pycryptodome (for AES encryption)\n   - click (for CLI implementation)\n   - pre-commit (for git hooks)\n3. Setup basic package metadata:\n```toml\n[build-system]\nrequires = [\"setuptools>=42\", \"wheel\"]\nbuild-backend = \"setuptools.build_meta\"\n\n[project]\nname = \"eval-crypt\"\nversion = \"0.1.0\"\ndescription = \"A tool to encrypt sensitive AI safety evaluation files in Git repositories\"\nreadme = \"README.md\"\nrequires-python = \">=3.8\"\nlicense = {text = \"MIT\"}\ndependencies = [\n    \"click>=8.0.0\",\n    \"pycryptodome>=3.15.0\",\n    \"pre-commit>=2.20.0\",\n]\n\n[project.scripts]\neval-crypt = \"eval_crypt.cli:main\"\n```\n4. Create a basic README.md with installation and usage instructions\n5. Note that the CLI will only manage the list of files to be encrypted/decrypted, while the actual encryption/decryption operations will be handled automatically by git hooks",
+        "testStrategy": "Verify the package structure is correct and that the package can be installed with pip install -e . in development mode. Ensure all dependencies are correctly specified and the package metadata is accurate. Test that the CLI correctly manages the list of files to be encrypted/decrypted and that the git hooks are properly configured.",
         "subtasks": [
+          {
+            "id": 2,
+            "title": "Create pyproject.toml with Dependencies",
+            "description": "Create the pyproject.toml file with necessary dependencies for the package.",
+            "status": "pending",
+            "dependencies": [
+              1
+            ],
+            "details": "Create pyproject.toml in the root directory with the following content:\n[build-system]\nrequires = [\"setuptools>=42\", \"wheel\"]\nbuild-backend = \"setuptools.build_meta\"\n\n[project]\nname = \"eval-crypt\"\nversion = \"0.1.0\"\ndescription = \"A tool to encrypt sensitive AI safety evaluation files in Git repositories\"\nreadme = \"README.md\"\nrequires-python = \">=3.8\"\nlicense = {text = \"MIT\"}\ndependencies = [\n    \"click>=8.0.0\",\n    \"pycryptodome>=3.15.0\",\n    \"pre-commit>=2.20.0\",\n]\n\n[project.scripts]\neval-crypt = \"eval_crypt.cli:main\"",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Create Basic README.md",
+            "description": "Create a comprehensive README.md file with installation and usage instructions for the package.",
+            "status": "pending",
+            "dependencies": [
+              2
+            ],
+            "details": "Create README.md in the root directory with the following sections:\n1. Project title and brief description\n2. Installation instructions (pip install, development setup)\n3. Basic usage examples\n4. Features overview\n5. License information\n\nExample content:\n# eval-crypt\n\nA tool to encrypt sensitive AI safety evaluation files in Git repositories.\n\n## Installation\n\n```bash\npip install eval-crypt\n```\n\nFor development:\n```bash\ngit clone https://github.com/username/eval-crypt.git\ncd eval-crypt\npip install -e .\n```\n\n## Usage\n\n```bash\n# Add a file to be automatically encrypted/decrypted by git hooks\neval-crypt add path/to/sensitive/file.txt\n\n# Remove a file from automatic encryption/decryption\neval-crypt remove path/to/sensitive/file.txt\n\n# List all files being managed for encryption/decryption\neval-crypt list\n```\n\n## Features\n\n- Secure AES encryption for sensitive files\n- Simple CLI interface for managing encrypted files\n- Automatic encryption/decryption via git hooks\n- Seamless integration with your Git workflow\n\n## License\n\nMIT",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Create Basic CLI Module Structure",
+            "description": "Create the initial CLI module structure in the eval_crypt package to enable file management for automatic encryption/decryption via git hooks.",
+            "status": "pending",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Create the cli.py file in the eval_crypt directory with a revised CLI structure using Click:\n```python\nimport click\n\n@click.group()\ndef main():\n    \"\"\"eval-crypt: A tool to manage sensitive AI safety evaluation files.\"\"\"\n    pass\n\n@main.command()\n@click.argument('file_path', type=click.Path(exists=True))\ndef add(file_path):\n    \"\"\"Add a file to the managed list for automatic encryption.\"\"\"\n    click.echo(f\"Adding {file_path} to managed files\")\n    # Logic to add file to managed list will be implemented later\n\n@main.command()\n@click.argument('file_path', type=click.Path(exists=True))\ndef remove(file_path):\n    \"\"\"Remove a file from the managed list to stop automatic encryption.\"\"\"\n    click.echo(f\"Removing {file_path} from managed files\")\n    # Logic to remove file from managed list will be implemented later\n\n@main.command()\ndef list():\n    \"\"\"List all files currently being managed for encryption.\"\"\"\n    click.echo(\"Listing all managed files:\")\n    # Logic to display managed files will be implemented later\n\nif __name__ == '__main__':\n    main()\n```\n\nNote: This CLI design aligns with the git hooks approach where files are automatically encrypted/decrypted by git hooks rather than through direct user commands.",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Document Git Hooks Workflow",
+            "description": "Document the workflow for how git hooks will automatically handle encryption/decryption of managed files.",
+            "status": "pending",
+            "dependencies": [
+              3
+            ],
+            "details": "Create a document or section in the README.md that explains:\n\n1. How the pre-commit hook will automatically encrypt sensitive files before they are committed\n2. How the post-checkout hook will automatically decrypt files after checkout\n3. How the post-merge hook will handle decryption after merging\n4. The overall workflow from a user perspective\n\nExample content for README.md section:\n\n## How It Works\n\neval-crypt uses git hooks to automatically encrypt and decrypt sensitive files:\n\n1. **Adding files to management**: When you run `eval-crypt add <file>`, the file path is added to a configuration file\n2. **Pre-commit hook**: Before committing, all managed files are automatically encrypted\n3. **Post-checkout hook**: After checkout, all managed files are automatically decrypted\n4. **Post-merge hook**: After merging, all managed files are automatically decrypted\n\nThis means you can work with the unencrypted files locally, but they will always be encrypted in the repository.",
+            "testStrategy": ""
+          },
           {
             "id": 1,
             "title": "Create Directory Structure",
@@ -18,40 +63,6 @@
             "details": "Create the following directory structure:\n- eval_crypt/ (main package)\n  - __init__.py (empty file to mark as package)\n  - cli.py (placeholder for CLI implementation)\n- tests/ (for unit tests)\n  - __init__.py (empty file)\n- docs/ (for documentation)\n  - index.md (placeholder for main documentation)",
             "status": "done",
             "dependencies": [],
-            "parentTaskId": 1
-          },
-          {
-            "id": 2,
-            "title": "Create pyproject.toml with Dependencies",
-            "description": "Create the pyproject.toml file with necessary dependencies for the package.",
-            "details": "Create pyproject.toml in the root directory with the following content:\n[build-system]\nrequires = [\"setuptools>=42\", \"wheel\"]\nbuild-backend = \"setuptools.build_meta\"\n\n[project]\nname = \"eval-crypt\"\nversion = \"0.1.0\"\ndescription = \"A tool to encrypt sensitive AI safety evaluation files in Git repositories\"\nreadme = \"README.md\"\nrequires-python = \">=3.8\"\nlicense = {text = \"MIT\"}\ndependencies = [\n    \"click>=8.0.0\",\n    \"pycryptodome>=3.15.0\",\n    \"pre-commit>=2.20.0\",\n]\n\n[project.scripts]\neval-crypt = \"eval_crypt.cli:main\"",
-            "status": "pending",
-            "dependencies": [
-              "1.1"
-            ],
-            "parentTaskId": 1
-          },
-          {
-            "id": 3,
-            "title": "Create Basic README.md",
-            "description": "Create a comprehensive README.md file with installation and usage instructions for the package.",
-            "details": "Create README.md in the root directory with the following sections:\n1. Project title and brief description\n2. Installation instructions (pip install, development setup)\n3. Basic usage examples\n4. Features overview\n5. License information\n\nExample content:\n# eval-crypt\n\nA tool to encrypt sensitive AI safety evaluation files in Git repositories.\n\n## Installation\n\n```bash\npip install eval-crypt\n```\n\nFor development:\n```bash\ngit clone https://github.com/username/eval-crypt.git\ncd eval-crypt\npip install -e .\n```\n\n## Usage\n\n```bash\n# Encrypt a file\neval-crypt encrypt path/to/sensitive/file.txt\n\n# Decrypt a file\neval-crypt decrypt path/to/encrypted/file.txt.enc\n```\n\n## Features\n\n- Secure AES encryption for sensitive files\n- Simple CLI interface\n- Git integration via pre-commit hooks\n\n## License\n\nMIT",
-            "status": "pending",
-            "dependencies": [
-              "1.2"
-            ],
-            "parentTaskId": 1
-          },
-          {
-            "id": 4,
-            "title": "Create Basic CLI Module Structure",
-            "description": "Create the initial CLI module structure in the eval_crypt package to enable the command-line interface.",
-            "details": "Create the cli.py file in the eval_crypt directory with a basic CLI structure using Click:\nimport click\n\n@click.group()\ndef main():\n    \"\"\"eval-crypt: A tool to encrypt sensitive AI safety evaluation files.\"\"\"\n    pass\n\n@main.command()\n@click.argument('file_path', type=click.Path(exists=True))\n@click.option('--output', '-o', help='Output file path')\ndef encrypt(file_path, output):\n    \"\"\"Encrypt a sensitive file.\"\"\"\n    click.echo(f\"Encrypting {file_path}\")\n    # Encryption logic will be implemented later\n\n@main.command()\n@click.argument('file_path', type=click.Path(exists=True))\n@click.option('--output', '-o', help='Output file path')\ndef decrypt(file_path, output):\n    \"\"\"Decrypt an encrypted file.\"\"\"\n    click.echo(f\"Decrypting {file_path}\")\n    # Decryption logic will be implemented later\n\nif __name__ == '__main__':\n    main()",
-            "status": "pending",
-            "dependencies": [
-              "1.1",
-              "1.2"
-            ],
             "parentTaskId": 1
           }
         ]
