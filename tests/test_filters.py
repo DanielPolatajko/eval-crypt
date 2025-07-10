@@ -1,4 +1,3 @@
-import pytest
 from eval_crypt import filters
 
 SECRET_KEY = b'0123456789abcdef'  # 16 bytes for AES-128

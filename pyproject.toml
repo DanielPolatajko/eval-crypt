@@ -21,7 +21,9 @@ eval-crypt = "eval_crypt.cli:main"
 test = [
     "pytest",
     "pytest-click",
-    "pre-commit"
+    "pre-commit",
+    "ruff",
+    "mypy"
 ]
 
 [tool.setuptools]

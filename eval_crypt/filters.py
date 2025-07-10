@@ -1,7 +1,6 @@
 from Crypto.Cipher import AES
 from base64 import b64encode, b64decode
 import json
-from typing import Optional
 
 def is_encrypted(content: bytes) -> bool:
     """Check if content is already in our encrypted format."""
