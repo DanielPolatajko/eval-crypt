@@ -5,7 +5,7 @@ A tool to encrypt sensitive AI safety evaluation files in Git repositories.
 ## Installation
 
 ```bash
-pip install eval-crypt
+pip install git+https://github.com/DanielPolatajko/eval-crypt.git
 ```
 
 For development:
