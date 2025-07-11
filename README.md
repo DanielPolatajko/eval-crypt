@@ -9,7 +9,7 @@ AI safety researchers often publish evaluation code and data to GitHub. If these
 ## Installation
 
 ```bash
-pip install eval-crypt
+pip install git+https://github.com/DanielPolatajko/eval-crypt.git
 ```
 
 ## Quick Start
